@@ -35,11 +35,12 @@
         <%# Conflicting Values %>
         <div class="px-4 sm:px-6 py-4">
           <p class="text-xs text-gray-400 uppercase tracking-wider mb-3 font-medium">Conflicting Values from Scouts</p>
-          <% entries_by_user = conflict.conflicting_entries.index_by(&:user_id) %>
+          <% preloaded = @entries_by_conflict&.dig(conflict.id) || conflict.conflicting_entries.to_a %>
+          <% entries_by_user = preloaded.index_by(&:user_id) %>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
             <% (conflict.values || {}).each do |scout_id, value| %>
-              <% scout = User.find_by(id: scout_id) %>
               <% entry = entries_by_user[scout_id.to_i] %>
+              <% scout = entry&.user || @users_by_id&.dig(scout_id.to_i) || User.find_by(id: scout_id) %>
               <div class="bg-gray-800 rounded-lg p-3 border border-gray-700 hover:border-gray-600 transition-colors duration-150 group">
                 <div class="flex items-center justify-between gap-2 mb-1">
                   <p class="text-xs text-gray-500"><%= scout&.full_name || "Scout ##{scout_id}" %></p>

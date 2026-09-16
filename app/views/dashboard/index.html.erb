@@ -372,7 +372,7 @@
     </div>
     <% if @recent_entries.any? %>
       <div class="divide-y divide-gray-800/50">
-        <% @recent_entries.includes(:user, :frc_team, :match).each do |entry| %>
+        <% @recent_entries.each do |entry| %>
           <%= link_to scouting_entry_path(entry), class: "flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-gray-800/30 transition-colors duration-150 group" do %>
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center group-hover:bg-gray-700/70 transition-colors duration-150">
