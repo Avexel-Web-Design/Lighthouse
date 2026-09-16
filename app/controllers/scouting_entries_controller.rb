@@ -50,13 +50,8 @@ class ScoutingEntriesController < ApplicationController
     end
 
     if @scouting_entry.save
-      @scouting_entry.broadcast_prepend_to(
-        "scouting_entries_event_#{current_event.id}",
-        target: "scouting_entries",
-        partial: "scouting_entries/scouting_entry",
-        locals: { scouting_entry: @scouting_entry }
-      )
-      RefreshSummariesJob.perform_later(current_event.id)
+      # Broadcast + RefreshSummariesJob are handled by ScoutingEntry
+      # after_commit callbacks so every mutation path stays covered.
       redirect_to @scouting_entry, notice: success_notice_for(@scouting_entry)
     else
       if @scouting_entry.replay?
@@ -84,7 +79,7 @@ class ScoutingEntriesController < ApplicationController
     authorize @scouting_entry
 
     if @scouting_entry.update(scouting_entry_params)
-      RefreshSummariesJob.perform_later(current_event.id)
+      # RefreshSummariesJob is enqueued by the ScoutingEntry after_commit callback.
       redirect_to @scouting_entry, notice: "Scouting entry was successfully updated."
     else
       if replay_entry_locked?
@@ -99,9 +94,8 @@ class ScoutingEntriesController < ApplicationController
 
   def destroy
     authorize @scouting_entry
-    event_id = @scouting_entry.event_id
     @scouting_entry.destroy!
-    RefreshSummariesJob.perform_later(event_id)
+    # RefreshSummariesJob is enqueued by the ScoutingEntry after_commit callback.
     redirect_to scouting_entries_path, notice: "Scouting entry was successfully deleted.", status: :see_other
   end
 
@@ -114,6 +108,9 @@ class ScoutingEntriesController < ApplicationController
     end
 
     @scouting_entry.update!(status: :approved)
+    # Synchronous refresh: approval immediately changes coverage counts shown
+    # on the next render. (The model callback also enqueues an async refresh;
+    # the job is idempotent so the overlap is harmless.)
     RefreshSummariesJob.perform_now(@scouting_entry.event_id)
 
     redirect_to @scouting_entry, notice: "Entry was marked as admin approved and now counts toward scouting coverage."

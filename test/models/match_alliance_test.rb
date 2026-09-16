@@ -42,7 +42,8 @@ class MatchAllianceTest < ActiveSupport::TestCase
   end
 
   test "same team can be in different matches" do
-    # team_6328 is in qm2/qm3/qm4 but not qm1, so qm1+6328 is a valid new combo
+    # team_6328 plays in qm2/qm3/qm4 but not qm1, and qm1 blue only has station 1,
+    # so this combination violates neither uniqueness index.
     alliance = MatchAlliance.new(
       match: matches(:qm1),
       frc_team: frc_teams(:team_6328),

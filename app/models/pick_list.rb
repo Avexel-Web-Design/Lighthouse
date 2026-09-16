@@ -9,44 +9,73 @@ class PickList < ApplicationRecord
 
   before_validation :normalize_entries
 
+  # Membership is memoized per entries assignment so normalize + validation +
+  # readers share a single DB resolution instead of re-resolving repeatedly.
   def ordered_team_ids
-    scalar_mode = scalar_entry_mode(Array(entries))
-    Array(entries).filter_map { |entry| extract_team_id(entry, scalar_mode: scalar_mode) }.uniq
+    @ordered_team_ids ||= compute_ordered_team_ids
   end
 
   def team_count
     ordered_team_ids.size
   end
 
+  def entries=(value)
+    @ordered_team_ids = nil
+    @invalid_pick_entries = nil
+    super
+  end
+
   private
 
   def normalize_entries
-    resolved = ordered_team_ids
-    raw = Array(entries).reject(&:blank?)
-    # Preserve raw invalid inputs so validation can report them
-    # instead of silently dropping to empty (which would pass validation).
-    return if raw.any? && resolved.empty?
-
+    resolved, invalid = resolve_entries(Array(entries))
     self.entries = resolved
+    @ordered_team_ids = resolved
+    @invalid_pick_entries = invalid
   end
 
   def entries_belong_to_event
     return if event.blank?
 
-    raw = Array(entries).reject(&:blank?)
-    return if raw.empty?
-
-    ordered = ordered_team_ids
-    if ordered.empty?
-      errors.add(:entries, "contain teams that are not part of the selected event")
-      return
-    end
-
-    valid_ids = FrcTeam.at_event(event).where(id: ordered).pluck(:id)
-    invalid_ids = ordered - valid_ids
-    return if invalid_ids.empty?
+    invalid = @invalid_pick_entries
+    _, invalid = resolve_entries(Array(entries)) if invalid.nil?
+    return if invalid.empty?
 
     errors.add(:entries, "contain teams that are not part of the selected event")
+  end
+
+  # Resolves raw entries to event-team ids once. Returns [ids, invalid_inputs]
+  # where invalid_inputs are non-blank inputs that match no team at the event.
+  def resolve_entries(raw_entries)
+    scalar_mode = scalar_entry_mode(raw_entries)
+    resolved = []
+    invalid = []
+
+    raw_entries.each do |entry|
+      next if blank_pick_entry?(entry)
+
+      team_id = extract_team_id(entry, scalar_mode: scalar_mode)
+      if team_id
+        resolved << team_id
+      else
+        invalid << entry
+      end
+    end
+
+    [resolved.uniq, invalid]
+  end
+
+  def blank_pick_entry?(entry)
+    case entry
+    when NilClass then true
+    when String then entry.strip.blank?
+    when Array, Hash then entry.empty?
+    else false
+    end
+  end
+
+  def compute_ordered_team_ids
+    resolve_entries(Array(entries)).first
   end
 
   def extract_team_id(entry, scalar_mode: nil)
