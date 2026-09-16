@@ -87,7 +87,7 @@ class PickListsController < ApplicationController
 
   def pick_list_params
     permitted = if params[:pick_list].present?
-      params.require(:pick_list).permit(:name, entries: [])
+      params.expect(pick_list: [ :name, entries: [] ])
     else
       params.permit(:name, entries: [])
     end

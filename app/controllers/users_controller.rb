@@ -67,10 +67,9 @@ class UsersController < ApplicationController
   end
 
   def user_params
-    permitted = params.require(:user).permit(:first_name, :last_name, :password)
+    permitted = params.expect(user: [ :first_name, :last_name, :password, :role ]).except(:role)
     requested_role = params.dig(:user, :role).to_s
 
-    # Only admins may set roles, and only to a known role value.
     if current_user&.admin? && requested_role.present? && User.roles.key?(requested_role)
       permitted[:role] = requested_role
     end
@@ -83,11 +82,8 @@ class UsersController < ApplicationController
     return false if requested_role.blank? || !User.roles.key?(requested_role)
     return false if @user.role == requested_role
 
-    # Non-admins can never change roles (defense in depth; policy already denies).
     return true unless current_user&.admin?
-    # Prevent self-demotion: an admin must not remove their own admin access.
     return true if @user == current_user
-    # Prevent orphaning the system: the last admin must stay an admin.
     return true if last_admin?(@user)
 
     false

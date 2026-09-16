@@ -197,7 +197,7 @@ class EventsController < ApplicationController
   end
 
   def create_event_params
-    params.require(:event).permit(:year, :event_code)
+    params.expect(event: [ :year, :event_code ])
   end
 
   def update_event_params

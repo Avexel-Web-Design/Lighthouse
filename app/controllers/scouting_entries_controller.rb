@@ -1,14 +1,8 @@
 class ScoutingEntriesController < ApplicationController
   include SyncCsrfProtection
+  include JsonRequestData
 
   MAX_SYNC_BATCH = 100
-  SCOUTING_DATA_KEYS = %i[
-    auton_fuel_made auton_fuel_missed
-    teleop_fuel_made teleop_fuel_missed
-    endgame_fuel_made endgame_fuel_missed
-    auton_climb endgame_climb defense_rating
-  ].freeze
-  MAX_AUTON_PATH_POINTS = 500
   MAX_NOTES_LENGTH = 2000
 
   helper_method :replay_embed_url_for, :replay_watch_url_for
@@ -139,7 +133,7 @@ class ScoutingEntriesController < ApplicationController
   def sync
     authorize :scouting_entry, :sync?
 
-    entries_params = params.require(:entries)
+    entries_params = params[:entries]
     unless entries_params.is_a?(Array) && entries_params.size <= MAX_SYNC_BATCH
       render json: { error: "Too many entries (max #{MAX_SYNC_BATCH})." }, status: :unprocessable_entity
       return
@@ -165,23 +159,23 @@ class ScoutingEntriesController < ApplicationController
   end
 
   def scouting_entry_params
-    permitted = params.require(:scouting_entry).permit(
+    permitted = params.expect(scouting_entry: [
       :match_id, :frc_team_id, :notes, :photo_url, :client_uuid, :status,
       :scouting_mode, :video_key, :video_type,
-      data: [ *SCOUTING_DATA_KEYS, :_json, { auton_path: [], auton_actions: [] } ]
-    )
+      data: {}
+    ])
 
     # The scouting form JS packs all scoring data into data[_json] as a JSON string.
     # Parse it and replace the raw data hash so the JSONB column gets real values.
     if permitted[:data].is_a?(ActionController::Parameters) && permitted[:data][:_json].present?
       begin
         parsed = JSON.parse(permitted[:data][:_json].to_s)
-        permitted[:data] = sanitize_scouting_data(parsed)
+        permitted[:data] = json_request_data(parsed)
       rescue JSON::ParserError
-        permitted[:data] = {}
+        raise ActionController::BadRequest, "Invalid scouting data"
       end
-    else
-      permitted[:data] = sanitize_scouting_data(permitted[:data])
+    elsif params[:scouting_entry].key?(:data)
+      permitted[:data] = json_request_data(params[:scouting_entry][:data])
     end
 
     permitted[:notes] = permitted[:notes].to_s.strip.first(MAX_NOTES_LENGTH) if permitted[:notes].present?
@@ -202,7 +196,11 @@ class ScoutingEntriesController < ApplicationController
   end
 
   def sync_one_entry(entry_data, created_event_ids)
-    client_uuid = entry_data[:client_uuid].to_s.strip.first(64)
+    unless entry_data.is_a?(ActionController::Parameters)
+      return { client_uuid: nil, status: "error", errors: [ "Entry must be an object" ] }
+    end
+
+    client_uuid = entry_data.permit(:client_uuid)[:client_uuid]
     existing = client_uuid.present? ? ScoutingEntry.find_by(client_uuid: client_uuid) : nil
 
     if existing
@@ -210,7 +208,7 @@ class ScoutingEntriesController < ApplicationController
       incoming_time = parse_sync_time(entry_data[:updated_at])
       if incoming_time && incoming_time > existing.updated_at
         updated = existing.update(
-          data: sanitize_scouting_data(entry_data[:data]),
+          data: json_request_data(entry_data[:data]),
           notes: entry_data[:notes].to_s.strip.first(MAX_NOTES_LENGTH),
           status: existing.approved? ? :approved : ScoutingEntry.sync_status(entry_data[:status]),
           scouting_mode: entry_data[:scouting_mode] || existing.scouting_mode,
@@ -231,7 +229,7 @@ class ScoutingEntriesController < ApplicationController
         :match_id, :frc_team_id, :event_id, :notes, :photo_url, :client_uuid,
         :status, :scouting_mode, :video_key, :video_type
       ).merge(user_id: current_user.id)
-      permitted[:data] = sanitize_scouting_data(entry_data[:data])
+      permitted[:data] = json_request_data(entry_data[:data])
       permitted[:notes] = permitted[:notes].to_s.strip.first(MAX_NOTES_LENGTH) if permitted[:notes].present?
 
       sync_event = sync_event_for(permitted[:event_id])
@@ -253,11 +251,7 @@ class ScoutingEntriesController < ApplicationController
   end
 
   def sync_event_for(event_id)
-    sync_event = Event.find_by(id: event_id.to_i)
-    return nil if sync_event.nil?
-    return nil if current_event.present? && sync_event.id != current_event.id
-
-    sync_event
+    Event.find_by(id: event_id)
   end
 
   def parse_sync_time(value)
@@ -266,24 +260,6 @@ class ScoutingEntriesController < ApplicationController
     Time.zone.parse(value.to_s)
   rescue ArgumentError, TypeError
     nil
-  end
-
-  def sanitize_scouting_data(raw)
-    source = raw.is_a?(ActionController::Parameters) ? raw.permit(*SCOUTING_DATA_KEYS, auton_path: [], auton_actions: []).to_h : raw.to_h
-    result = {}
-    SCOUTING_DATA_KEYS.each do |key|
-      value = source[key.to_s].nil? ? source[key] : source[key.to_s]
-      result[key.to_s] = value unless value.nil?
-    end
-    raw_path = source["auton_path"] || source[:auton_path]
-    if raw_path.is_a?(Array) && raw_path.flatten.size <= MAX_AUTON_PATH_POINTS * 2
-      result["auton_path"] = raw_path.first(50)
-    end
-    raw_actions = source["auton_actions"] || source[:auton_actions]
-    if raw_actions.is_a?(Array)
-      result["auton_actions"] = raw_actions.map(&:to_s).map { |a| a.first(50) }.first(100)
-    end
-    result
   end
 
   def setup_live_form(include_match: nil)

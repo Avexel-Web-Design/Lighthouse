@@ -1,20 +1,9 @@
 class PitScoutingEntriesController < ApplicationController
   include SyncCsrfProtection
+  include JsonRequestData
 
   MAX_SYNC_BATCH = 100
   MAX_NOTES_LENGTH = 2000
-  PIT_DATA_KEYS = %i[
-    robot_width robot_length robot_height robot_weight
-    drivetrain drive_motor pivot_motor drivetrain_notes
-    intake_width intake_mechanism intake_mechanism_other intake_notes
-    hopper_x hopper_y hopper_z
-    hopper_extended_x hopper_extended_y hopper_extended_z hopper_notes
-    indexer indexer_other indexer_notes
-    shooter_hood shooter_motor shooter_notes
-    climber_type climber_notes
-    auton_paths_json auton_notes
-    strengths weaknesses
-  ].freeze
 
   before_action :require_event!, except: :sync
   skip_forgery_protection only: :sync
@@ -92,7 +81,7 @@ class PitScoutingEntriesController < ApplicationController
   def sync
     authorize :pit_scouting_entry, :sync?
 
-    entries_params = params.require(:entries)
+    entries_params = params[:entries]
     unless entries_params.is_a?(Array) && entries_params.size <= MAX_SYNC_BATCH
       render json: { error: "Too many entries (max #{MAX_SYNC_BATCH})." }, status: :unprocessable_entity
       return
@@ -152,14 +141,18 @@ class PitScoutingEntriesController < ApplicationController
   end
 
   def sync_one_entry(entry_data, created_event_ids)
-    client_uuid = entry_data[:client_uuid].to_s.strip.first(64)
+    unless entry_data.is_a?(ActionController::Parameters)
+      return { client_uuid: nil, status: "error", errors: [ "Entry must be an object" ] }
+    end
+
+    client_uuid = entry_data.permit(:client_uuid)[:client_uuid]
     entry = client_uuid.present? ? PitScoutingEntry.find_by(client_uuid: client_uuid) : nil
 
     if entry
       { client_uuid: client_uuid, status: "existing", id: entry.id }
     else
       permitted = entry_data.permit(:frc_team_id, :event_id, :notes, :client_uuid, :status).merge(user_id: current_user.id)
-      permitted[:data] = sanitize_pit_data(entry_data[:data])
+      permitted[:data] = json_request_data(entry_data[:data])
       permitted[:notes] = permitted[:notes].to_s.strip.first(MAX_NOTES_LENGTH) if permitted[:notes].present?
 
       sync_event = sync_event_for(permitted[:event_id])
@@ -181,26 +174,6 @@ class PitScoutingEntriesController < ApplicationController
   end
 
   def sync_event_for(event_id)
-    sync_event = Event.find_by(id: event_id.to_i)
-    return nil if sync_event.nil?
-    return nil if current_event.present? && sync_event.id != current_event.id
-
-    sync_event
-  end
-
-  def sanitize_pit_data(raw)
-    source = raw.is_a?(ActionController::Parameters) ? raw.permit(*PIT_DATA_KEYS, intake_types: [], shooter_types: [], climber_levels: [], auton_paths: []).to_h : raw.to_h
-    result = {}
-    PIT_DATA_KEYS.each do |key|
-      value = source[key.to_s].nil? ? source[key] : source[key.to_s]
-      result[key.to_s] = value unless value.nil?
-    end
-    %w[intake_types shooter_types climber_levels].each do |key|
-      values = source[key] || source[key.to_s]
-      result[key] = Array(values).map(&:to_s).map { |v| v.first(100) }.first(20) if values.present?
-    end
-    paths = source["auton_paths"] || source[:auton_paths]
-    result["auton_paths"] = Array(paths).first(50) if paths.is_a?(Array)
-    result
+    Event.find_by(id: event_id)
   end
 end

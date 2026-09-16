@@ -1,12 +1,7 @@
 class QrImportsController < ApplicationController
   include SyncCsrfProtection
+  include JsonRequestData
 
-  QR_DATA_KEYS = %i[
-    auton_fuel_made auton_fuel_missed
-    teleop_fuel_made teleop_fuel_missed
-    endgame_fuel_made endgame_fuel_missed
-    auton_climb endgame_climb defense_rating
-  ].freeze
   MAX_QR_NOTES_LENGTH = 2000
 
   skip_forgery_protection only: :import
@@ -23,11 +18,10 @@ class QrImportsController < ApplicationController
   def import
     authorize :qr_import, :import?
 
-    entry_params = params.require(:entry).permit(
+    entry_params = params.expect(entry: [
       :client_uuid, :match_key, :team_number, :event_key,
-      :notes, :status, :updated_at, :scouting_mode, :video_key, :video_type,
-      data: [ *QR_DATA_KEYS, { auton_path: [], auton_actions: [] } ]
-    )
+      :notes, :status, :updated_at, :scouting_mode, :video_key, :video_type
+    ])
 
     # Validate required fields
     unless entry_params[:client_uuid].present? && entry_params[:event_key].present? && entry_params[:team_number].present?
@@ -55,10 +49,10 @@ class QrImportsController < ApplicationController
       match = Match.find_by(event: event, tba_key: entry_params[:match_key].to_s.strip.first(32))
     end
 
-    sanitized_data = sanitize_qr_data(entry_params[:data])
+    sanitized_data = json_request_data(params[:entry][:data])
     sanitized_notes = entry_params[:notes].to_s.strip.first(MAX_QR_NOTES_LENGTH)
 
-    existing = ScoutingEntry.find_by(client_uuid: entry_params[:client_uuid].to_s.strip.first(64))
+    existing = ScoutingEntry.find_by(client_uuid: entry_params[:client_uuid])
 
     if existing
       # LWW conflict resolution: compare timestamps
@@ -107,7 +101,7 @@ class QrImportsController < ApplicationController
           event_id: event.id,
           data: sanitized_data,
           notes: sanitized_notes,
-          client_uuid: entry_params[:client_uuid].to_s.strip.first(64),
+          client_uuid: entry_params[:client_uuid],
           status: ScoutingEntry.sync_status(entry_params[:status]),
           scouting_mode: entry_params[:scouting_mode] || :live,
           video_key: entry_params[:video_key].to_s.strip.first(255),
@@ -137,6 +131,8 @@ class QrImportsController < ApplicationController
         }, status: :unprocessable_entity
       end
     end
+  rescue Pundit::NotAuthorizedError
+    raise
   rescue StandardError => e
     Rails.logger.error("[QrImportsController] QR import failed: #{e.class}: #{e.message}")
     render json: { status: "error", errors: [ "Import failed. Please try again." ] }, status: :unprocessable_entity
@@ -150,19 +146,5 @@ class QrImportsController < ApplicationController
     Time.zone.parse(value.to_s)
   rescue ArgumentError, TypeError
     nil
-  end
-
-  def sanitize_qr_data(raw)
-    source = raw.is_a?(ActionController::Parameters) ? raw.permit(*QR_DATA_KEYS, auton_path: [], auton_actions: []).to_h : raw.to_h
-    result = {}
-    QR_DATA_KEYS.each do |key|
-      value = source[key.to_s].nil? ? source[key] : source[key.to_s]
-      result[key.to_s] = value unless value.nil?
-    end
-    raw_path = source["auton_path"] || source[:auton_path]
-    result["auton_path"] = Array(raw_path).first(50) if raw_path.is_a?(Array)
-    raw_actions = source["auton_actions"] || source[:auton_actions]
-    result["auton_actions"] = Array(raw_actions).map(&:to_s).map { |a| a.first(50) }.first(100) if raw_actions.is_a?(Array)
-    result
   end
 end
