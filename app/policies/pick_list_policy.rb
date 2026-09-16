@@ -8,11 +8,11 @@ class PickListPolicy < ApplicationPolicy
   end
 
   def create?
-    admin?
+    analyst?
   end
 
   def update?
-    admin?
+    analyst?
   end
 
   def destroy?
@@ -21,7 +21,7 @@ class PickListPolicy < ApplicationPolicy
 
   class Scope < ApplicationPolicy::Scope
     def resolve
-      if admin?
+      if analyst?
         scope.all
       else
         scope.where(user: user)

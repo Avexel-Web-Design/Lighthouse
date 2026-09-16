@@ -10,7 +10,7 @@ class DataConflictsController < ApplicationController
   end
 
   def resolve
-    @data_conflict = DataConflict.find(params[:id])
+    @data_conflict = policy_scope(DataConflict).where(event: current_event).find(params[:id])
     authorize @data_conflict
 
     DataConflictResolutionService.new(
