@@ -38,7 +38,10 @@ class TeamComparisonsController < ApplicationController
       @entries_by_team[team.id] = ScoutingEntry.where(event: current_event, frc_team: team)
                                                .includes(:match)
                                                .order(created_at: :asc)
-      @pit_data[team.id] = PitScoutingEntry.find_by(event: current_event, frc_team: team)
+      # Deterministic primary: latest non-rejected report.
+      pit_entries = PitScoutingEntry.where(event: current_event, frc_team: team)
+                                    .order(updated_at: :desc)
+      @pit_data[team.id] = pit_entries.reject(&:rejected?).first || pit_entries.first
     end
 
     # Build radar chart data: event-wide values for percentile computation + per-team values

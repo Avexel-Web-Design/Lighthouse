@@ -39,7 +39,15 @@ class TeamsController < ApplicationController
 
     @summary = build_team_summary(@entries)
     @matches = @team.matches.where(event: current_event).ordered
-    @pit_entry = PitScoutingEntry.find_by(event: current_event, frc_team: @team)
+    # Deterministic primary: latest non-rejected report. Rejected entries are
+    # excluded so one bad entry can't shadow good data or cause phantom disagreements.
+    ordered_pit_entries = PitScoutingEntry.where(event: current_event, frc_team: @team)
+                                            .includes(:user)
+                                            .order(updated_at: :desc)
+    @pit_entries = ordered_pit_entries.reject(&:rejected?)
+    @pit_entries = [ ordered_pit_entries.first ].compact if @pit_entries.empty?
+    @pit_entry = @pit_entries.first
+    @pit_discrepancies = PitScoutingDiscrepancyService.new(@pit_entries).discrepancies
 
     # Single DB query — no external API call
     @epa = StatboticsCache.find_by(event: current_event, frc_team: @team)
