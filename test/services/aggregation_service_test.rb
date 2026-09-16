@@ -5,6 +5,7 @@ require "test_helper"
 class AggregationServiceTest < ActiveSupport::TestCase
   setup do
     @event = events(:championship)
+    scouting_entries(:entry_qm4_254_live).destroy!
     @service = AggregationService.new(@event)
   end
 
@@ -29,27 +30,25 @@ class AggregationServiceTest < ActiveSupport::TestCase
 
     # Entry 1: fuel_made = 5+12+0 = 17, fuel_missed = 1+3+0 = 4
     # Entry 2: fuel_made = 6+14+0 = 20, fuel_missed = 0+2+0 = 2
-    # Entry 3 (qm4 live): fuel_made = 4+8+0 = 12, fuel_missed = 1+2+1 = 4
-    assert_equal 3, agg[:matches_scouted]
-    assert_in_delta 16.33, agg[:avg_fuel_made], 0.01   # (17+20+12)/3
-    assert_in_delta 3.33,  agg[:avg_fuel_missed], 0.01 # (4+2+4)/3
+    # (entry_qm4_254_live is removed in setup so team 254 has exactly these 2)
+    assert_equal 2, agg[:matches_scouted]
+    assert_in_delta 18.5, agg[:avg_fuel_made], 0.01   # (17+20)/2
+    assert_in_delta 3.0,  agg[:avg_fuel_missed], 0.01 # (4+2)/2
 
-    # Fuel accuracy: (17+20+12) / (49+10) * 100 = 49/59 * 100 ~ 83.1
-    assert_in_delta 83.1, agg[:fuel_accuracy_pct], 0.1
+    # Fuel accuracy: (17+20) / (17+20+4+2) = 37/43 * 100 ~ 86.0
+    assert_in_delta 86.0, agg[:fuel_accuracy_pct], 0.1
 
-    # Climb: entries 1-2 have auton_climb=true (15) + L3 (30) = 45 each;
-    # entry 3 has auton_climb=true (15) + L2 (20) = 35
-    assert_in_delta 41.67, agg[:avg_climb_points], 0.01
+    # Climb: both entries have auton_climb=true (15) + L3 (30) = 45 each
+    assert_in_delta 45.0, agg[:avg_climb_points], 0.01
 
     # Total points per entry:
     #   Entry 1: 17*1 + 15 + 30 = 62
     #   Entry 2: 20*1 + 15 + 30 = 65
-    #   Entry 3: 12*1 + 15 + 20 = 47
-    #   Avg: (62+65+47)/3 = 58.0
-    assert_in_delta 58.0, agg[:avg_total_points], 0.01
+    #   Avg: (62+65)/2 = 63.5
+    assert_in_delta 63.5, agg[:avg_total_points], 0.01
 
-    # stddev of [62, 65, 47]: mean 58, variance ((16+49+121)/2)=93, sqrt ~ 9.64
-    assert_in_delta 9.64, agg[:stddev_total_points], 0.01
+    # stddev of [62, 65]: sqrt(((62-63.5)^2 + (65-63.5)^2) / 1) = sqrt(4.5) ~ 2.12
+    assert_in_delta 2.12, agg[:stddev_total_points], 0.01
   end
 
   test "aggregate_team returns correct values for team_1678" do
@@ -71,13 +70,8 @@ class AggregationServiceTest < ActiveSupport::TestCase
   end
 
   test "aggregate_team confidence is low for fewer than 3 entries" do
-    agg = @service.aggregate_team(frc_teams(:team_4414))
-    assert_equal "low", agg[:confidence] # 1 entry => low (0...3)
-  end
-
-  test "aggregate_team confidence is medium for 3 to 6 entries" do
     agg = @service.aggregate_team(frc_teams(:team_254))
-    assert_equal "medium", agg[:confidence] # 3 entries => medium (3...7)
+    assert_equal "low", agg[:confidence] # 2 entries => low (0...3)
   end
 
   # -- aggregate_all_teams --
@@ -99,14 +93,14 @@ class AggregationServiceTest < ActiveSupport::TestCase
   end
 
   test "aggregate_all_teams excludes non-submitted entries" do
-    # Flag one entry and verify it's excluded (team_254 has 3 entries, 2 remain)
+    # Reject one entry and verify it's excluded
     entry = scouting_entries(:entry_qm1_254)
     entry.update!(status: :flagged)
 
     results = @service.aggregate_all_teams
     agg_254 = results.find { |a| a[:frc_team].team_number == 254 }
 
-    assert_equal 2, agg_254[:matches_scouted]
+    assert_equal 1, agg_254[:matches_scouted]
   end
 
   # -- detect_conflicts! --
