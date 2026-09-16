@@ -1,9 +1,12 @@
 class WebPushSubscriptionsController < ApplicationController
+  MAX_ENDPOINT_LENGTH = 2000
+  MAX_KEY_LENGTH = 500
+
   def create
     authorize :web_push_subscription, :create?
 
     permitted = subscription_params
-    endpoint = permitted[:endpoint]
+    endpoint = permitted[:endpoint].to_s.strip.first(MAX_ENDPOINT_LENGTH)
     keys = permitted[:keys] || {}
 
     if endpoint.blank? || keys[:p256dh].blank? || keys[:auth].blank?
@@ -14,23 +17,25 @@ class WebPushSubscriptionsController < ApplicationController
     record = WebPushSubscription.find_or_initialize_by(endpoint: endpoint)
     record.assign_attributes(
       user: current_user,
-      p256dh: keys[:p256dh],
-      auth: keys[:auth],
-      user_agent: request.user_agent,
+      p256dh: keys[:p256dh].to_s.strip.first(MAX_KEY_LENGTH),
+      auth: keys[:auth].to_s.strip.first(MAX_KEY_LENGTH),
+      user_agent: request.user_agent.to_s.first(500),
       last_seen_at: Time.current
     )
-    record.save!
-
-    render json: { status: "ok" }
+    if record.save
+      render json: { status: "ok" }
+    else
+      render json: { error: "Invalid subscription payload" }, status: :unprocessable_entity
+    end
   rescue StandardError => e
-    Rails.logger.warn("[WebPushSubscriptionsController] create failed: #{e.message}")
+    Rails.logger.warn("[WebPushSubscriptionsController] create failed: #{e.class}: #{e.message}")
     render json: { error: "Failed to save subscription" }, status: :unprocessable_entity
   end
 
   def unsubscribe
     authorize :web_push_subscription, :unsubscribe?
 
-    endpoint = params[:endpoint].to_s
+    endpoint = unsubscribe_params[:endpoint].to_s.strip.first(MAX_ENDPOINT_LENGTH)
     if endpoint.blank?
       render json: { error: "Missing endpoint" }, status: :unprocessable_entity
       return
@@ -51,7 +56,7 @@ class WebPushSubscriptionsController < ApplicationController
       render json: { error: "No active push subscription found" }, status: :unprocessable_entity
     end
   rescue StandardError => e
-    Rails.logger.warn("[WebPushSubscriptionsController] test notification failed: #{e.message}")
+    Rails.logger.warn("[WebPushSubscriptionsController] test notification failed: #{e.class}: #{e.message}")
     render json: { error: "Failed to send test notification" }, status: :unprocessable_entity
   end
 
@@ -59,5 +64,9 @@ class WebPushSubscriptionsController < ApplicationController
 
   def subscription_params
     params.require(:subscription).permit(:endpoint, keys: %i[p256dh auth])
+  end
+
+  def unsubscribe_params
+    params.permit(:endpoint)
   end
 end

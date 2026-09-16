@@ -46,6 +46,7 @@ class PredictionsController < ApplicationController
 
     redirect_to predictions_path, notice: "Generated predictions for #{count} matches."
   rescue StandardError => e
-    redirect_to predictions_path, alert: "Failed to generate predictions: #{e.message}"
+    Rails.logger.warn("[PredictionsController] Generate failed for event #{current_event&.id}: #{e.class}: #{e.message}")
+    redirect_to predictions_path, alert: "Failed to generate predictions. Please try again later."
   end
 end

@@ -1,4 +1,6 @@
 class PickListsController < ApplicationController
+  MAX_PICK_LIST_ENTRIES = 100
+
   PickListTeamSummary = Struct.new(
     :frc_team_id,
     :avg_total_points,
@@ -69,8 +71,12 @@ class PickListsController < ApplicationController
 
   def destroy
     authorize @pick_list
-    @pick_list.destroy!
-    redirect_to pick_lists_path, notice: "Pick list was successfully deleted.", status: :see_other
+    @pick_list.destroy
+    if @pick_list.destroyed?
+      redirect_to pick_lists_path, notice: "Pick list was successfully deleted.", status: :see_other
+    else
+      redirect_to @pick_list, alert: "Could not delete pick list."
+    end
   end
 
   private
@@ -80,8 +86,12 @@ class PickListsController < ApplicationController
   end
 
   def pick_list_params
-    source = params[:pick_list] || params
-    permitted = source.permit(:name, entries: [])
+    permitted = if params[:pick_list].present?
+      params.require(:pick_list).permit(:name, entries: [])
+    else
+      params.permit(:name, entries: [])
+    end
+    permitted[:entries] = Array(permitted[:entries]).first(MAX_PICK_LIST_ENTRIES)
     permitted[:entries] ||= []
     permitted
   end

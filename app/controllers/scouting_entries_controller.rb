@@ -1,6 +1,16 @@
 class ScoutingEntriesController < ApplicationController
   include SyncCsrfProtection
 
+  MAX_SYNC_BATCH = 100
+  SCOUTING_DATA_KEYS = %i[
+    auton_fuel_made auton_fuel_missed
+    teleop_fuel_made teleop_fuel_missed
+    endgame_fuel_made endgame_fuel_missed
+    auton_climb endgame_climb defense_rating
+  ].freeze
+  MAX_AUTON_PATH_POINTS = 500
+  MAX_NOTES_LENGTH = 2000
+
   helper_method :replay_embed_url_for, :replay_watch_url_for
 
   before_action :require_event!, except: :sync
@@ -100,9 +110,13 @@ class ScoutingEntriesController < ApplicationController
   def destroy
     authorize @scouting_entry
     event_id = @scouting_entry.event_id
-    @scouting_entry.destroy!
-    RefreshSummariesJob.perform_later(event_id)
-    redirect_to scouting_entries_path, notice: "Scouting entry was successfully deleted.", status: :see_other
+    @scouting_entry.destroy
+    if @scouting_entry.destroyed?
+      RefreshSummariesJob.perform_later(event_id)
+      redirect_to scouting_entries_path, notice: "Scouting entry was successfully deleted.", status: :see_other
+    else
+      redirect_to @scouting_entry, alert: "Could not delete scouting entry."
+    end
   end
 
   def approve
@@ -113,10 +127,12 @@ class ScoutingEntriesController < ApplicationController
       return
     end
 
-    @scouting_entry.update!(status: :approved)
-    RefreshSummariesJob.perform_now(@scouting_entry.event_id)
-
-    redirect_to @scouting_entry, notice: "Entry was marked as admin approved and now counts toward scouting coverage."
+    if @scouting_entry.update(status: :approved)
+      RefreshSummariesJob.perform_now(@scouting_entry.event_id)
+      redirect_to @scouting_entry, notice: "Entry was marked as admin approved and now counts toward scouting coverage."
+    else
+      redirect_to @scouting_entry, alert: "Could not approve entry."
+    end
   end
 
   # POST /scouting_entries/sync — offline sync endpoint
@@ -124,52 +140,16 @@ class ScoutingEntriesController < ApplicationController
     authorize :scouting_entry, :sync?
 
     entries_params = params.require(:entries)
+    unless entries_params.is_a?(Array) && entries_params.size <= MAX_SYNC_BATCH
+      render json: { error: "Too many entries (max #{MAX_SYNC_BATCH})." }, status: :unprocessable_entity
+      return
+    end
+
     results = []
     created_event_ids = []
 
     entries_params.each do |entry_data|
-      existing = ScoutingEntry.find_by(client_uuid: entry_data[:client_uuid])
-
-      if existing
-        # Last-Write-Wins: compare the incoming updated_at against the server's.
-        # If the incoming record is newer, update; otherwise keep server copy.
-        incoming_time = Time.parse(entry_data[:updated_at].to_s) rescue nil
-
-        if incoming_time && incoming_time > existing.updated_at
-          existing.update!(
-            data:   entry_data[:data].is_a?(ActionController::Parameters) ? entry_data[:data].to_unsafe_h : (entry_data[:data] || {}),
-            notes:  entry_data[:notes],
-            status: existing.approved? ? :approved : ScoutingEntry.sync_status(entry_data[:status]),
-            scouting_mode: entry_data[:scouting_mode] || existing.scouting_mode,
-            video_key: entry_data[:video_key],
-            video_type: entry_data[:video_type]
-          )
-          results << { client_uuid: entry_data[:client_uuid], status: "updated", id: existing.id }
-          created_event_ids << existing.event_id
-        else
-          results << { client_uuid: entry_data[:client_uuid], status: "existing", id: existing.id }
-        end
-      else
-        permitted = entry_data.permit(:match_id, :frc_team_id, :event_id, :notes, :photo_url, :client_uuid,
-                                      :status, :scouting_mode, :video_key, :video_type, data: {})
-                               .merge(user_id: current_user.id)
-
-        # Validate the caller-supplied event_id references a real event
-        sync_event = Event.find_by(id: permitted[:event_id])
-        unless sync_event
-          results << { client_uuid: entry_data[:client_uuid], status: "error", errors: [ "Invalid event" ] }
-          next
-        end
-
-        entry = ScoutingEntry.from_offline_data(permitted)
-
-        if entry.save
-          results << { client_uuid: entry_data[:client_uuid], status: "created", id: entry.id }
-          created_event_ids << permitted[:event_id].to_i if permitted[:event_id].present?
-        else
-          results << { client_uuid: entry_data[:client_uuid], status: "error", errors: entry.errors.full_messages }
-        end
-      end
+      results << sync_one_entry(entry_data, created_event_ids)
     end
 
     # Refresh summaries for the events that actually received new entries
@@ -188,14 +168,23 @@ class ScoutingEntriesController < ApplicationController
     permitted = params.require(:scouting_entry).permit(
       :match_id, :frc_team_id, :notes, :photo_url, :client_uuid, :status,
       :scouting_mode, :video_key, :video_type,
-      data: {}
+      data: [ *SCOUTING_DATA_KEYS, :_json, { auton_path: [], auton_actions: [] } ]
     )
 
     # The scouting form JS packs all scoring data into data[_json] as a JSON string.
     # Parse it and replace the raw data hash so the JSONB column gets real values.
     if permitted[:data].is_a?(ActionController::Parameters) && permitted[:data][:_json].present?
-      permitted[:data] = JSON.parse(permitted[:data][:_json])
+      begin
+        parsed = JSON.parse(permitted[:data][:_json].to_s)
+        permitted[:data] = sanitize_scouting_data(parsed)
+      rescue JSON::ParserError
+        permitted[:data] = {}
+      end
+    else
+      permitted[:data] = sanitize_scouting_data(permitted[:data])
     end
+
+    permitted[:notes] = permitted[:notes].to_s.strip.first(MAX_NOTES_LENGTH) if permitted[:notes].present?
 
     if permitted[:status].present?
       permitted[:status] = @scouting_entry&.approved? ? :approved : ScoutingEntry.sync_status(permitted[:status])
@@ -210,6 +199,91 @@ class ScoutingEntriesController < ApplicationController
     end
 
     permitted
+  end
+
+  def sync_one_entry(entry_data, created_event_ids)
+    client_uuid = entry_data[:client_uuid].to_s.strip.first(64)
+    existing = client_uuid.present? ? ScoutingEntry.find_by(client_uuid: client_uuid) : nil
+
+    if existing
+      # Last-Write-Wins: compare the incoming updated_at against the server's.
+      incoming_time = parse_sync_time(entry_data[:updated_at])
+      if incoming_time && incoming_time > existing.updated_at
+        updated = existing.update(
+          data: sanitize_scouting_data(entry_data[:data]),
+          notes: entry_data[:notes].to_s.strip.first(MAX_NOTES_LENGTH),
+          status: existing.approved? ? :approved : ScoutingEntry.sync_status(entry_data[:status]),
+          scouting_mode: entry_data[:scouting_mode] || existing.scouting_mode,
+          video_key: entry_data[:video_key].to_s.strip.first(255),
+          video_type: entry_data[:video_type].to_s.strip.first(50)
+        )
+        if updated
+          created_event_ids << existing.event_id
+          { client_uuid: client_uuid, status: "updated", id: existing.id }
+        else
+          { client_uuid: client_uuid, status: "error", errors: existing.errors.full_messages }
+        end
+      else
+        { client_uuid: client_uuid, status: "existing", id: existing.id }
+      end
+    else
+      permitted = entry_data.permit(
+        :match_id, :frc_team_id, :event_id, :notes, :photo_url, :client_uuid,
+        :status, :scouting_mode, :video_key, :video_type
+      ).merge(user_id: current_user.id)
+      permitted[:data] = sanitize_scouting_data(entry_data[:data])
+      permitted[:notes] = permitted[:notes].to_s.strip.first(MAX_NOTES_LENGTH) if permitted[:notes].present?
+
+      sync_event = sync_event_for(permitted[:event_id])
+      unless sync_event
+        return { client_uuid: client_uuid, status: "error", errors: [ "Invalid event" ] }
+      end
+
+      entry = ScoutingEntry.from_offline_data(permitted)
+      if entry.save
+        created_event_ids << sync_event.id
+        { client_uuid: client_uuid, status: "created", id: entry.id }
+      else
+        { client_uuid: client_uuid, status: "error", errors: entry.errors.full_messages }
+      end
+    end
+  rescue StandardError => e
+    Rails.logger.warn("[ScoutingEntriesController] Sync row failed: #{e.class}: #{e.message}")
+    { client_uuid: entry_data[:client_uuid].to_s, status: "error", errors: [ "Could not save entry" ] }
+  end
+
+  def sync_event_for(event_id)
+    sync_event = Event.find_by(id: event_id.to_i)
+    return nil if sync_event.nil?
+    return nil if current_event.present? && sync_event.id != current_event.id
+
+    sync_event
+  end
+
+  def parse_sync_time(value)
+    return nil if value.blank?
+
+    Time.zone.parse(value.to_s)
+  rescue ArgumentError, TypeError
+    nil
+  end
+
+  def sanitize_scouting_data(raw)
+    source = raw.is_a?(ActionController::Parameters) ? raw.permit(*SCOUTING_DATA_KEYS, auton_path: [], auton_actions: []).to_h : raw.to_h
+    result = {}
+    SCOUTING_DATA_KEYS.each do |key|
+      value = source[key.to_s].nil? ? source[key] : source[key.to_s]
+      result[key.to_s] = value unless value.nil?
+    end
+    raw_path = source["auton_path"] || source[:auton_path]
+    if raw_path.is_a?(Array) && raw_path.flatten.size <= MAX_AUTON_PATH_POINTS * 2
+      result["auton_path"] = raw_path.first(50)
+    end
+    raw_actions = source["auton_actions"] || source[:auton_actions]
+    if raw_actions.is_a?(Array)
+      result["auton_actions"] = raw_actions.map(&:to_s).map { |a| a.first(50) }.first(100)
+    end
+    result
   end
 
   def setup_live_form(include_match: nil)
