@@ -61,6 +61,59 @@ class TeamsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # --- Pit scouting duplicates ---
+
+  test "show uses latest pit entry and lists disagreements when duplicates differ" do
+    PitScoutingEntry.create!(
+      user: users(:lead_user),
+      event: @event,
+      frc_team: @team,
+      data: { "drivetrain" => "Tank", "robot_weight" => 120 },
+      client_uuid: "pit-dup-test-#{SecureRandom.hex(8)}",
+      updated_at: 1.hour.from_now
+    )
+
+    get team_path(@team)
+    assert_response :success
+    assert_includes response.body, "Disagreements"
+    assert_includes response.body, "Tank"
+    assert_includes response.body, "Swerve"
+    assert_includes response.body, "2 reports"
+  end
+
+  test "show reports agreement when duplicate pit entries match" do
+    PitScoutingEntry.create!(
+      user: users(:lead_user),
+      event: @event,
+      frc_team: @team,
+      data: pit_scouting_entries(:pit_254).data.deep_dup,
+      client_uuid: "pit-agree-test-#{SecureRandom.hex(8)}",
+      updated_at: 1.hour.from_now
+    )
+
+    get team_path(@team)
+    assert_response :success
+    assert_includes response.body, "agree on spec fields"
+    assert_not_includes response.body, "Disagreements"
+  end
+
+  test "show ignores rejected pit entries" do
+    PitScoutingEntry.create!(
+      user: users(:lead_user),
+      event: @event,
+      frc_team: @team,
+      data: { "drivetrain" => "Tank" },
+      status: :rejected,
+      client_uuid: "pit-rejected-test-#{SecureRandom.hex(8)}",
+      updated_at: 1.hour.from_now
+    )
+
+    get team_path(@team)
+    assert_response :success
+    assert_not_includes response.body, "Disagreements"
+    assert_includes response.body, "Swerve"
+  end
+
   # --- Authentication ---
 
   test "unauthenticated user is redirected" do
