@@ -1,6 +1,7 @@
 require "test_helper"
 
 class DataConflictsControllerTest < ActionDispatch::IntegrationTest
+  include ActiveJob::TestHelper
   setup do
     @user = users(:admin_user)
     @event = events(:championship)
@@ -20,6 +21,33 @@ class DataConflictsControllerTest < ActionDispatch::IntegrationTest
     )
     sign_in_as(@user)
     select_event(@event)
+  end
+
+  test "index renders preloaded conflicting entries" do
+    get data_conflicts_path
+
+    assert_response :success
+    assert_select "option[value='#{@secondary_entry.id}']", text: /#{users(:lead_user).full_name}/
+  end
+
+  test "resolution keeps raw audit input while writing typed boolean data asynchronously" do
+    @conflict.update!(field_name: "auton_climb", values: { @user.id.to_s => true, users(:lead_user).id.to_s => false })
+
+    assert_enqueued_with(job: RefreshSummariesJob, args: [ @event.id ]) do
+      post resolve_data_conflict_path(@conflict), params: { resolution: "1" }
+    end
+
+    assert_equal "1", @conflict.reload.resolution_value
+    assert_equal true, @secondary_entry.reload.data["auton_climb"]
+  end
+
+  test "resolution writes numeric data without changing its type" do
+    @conflict.update!(field_name: "teleop_fuel_made", values: { @user.id.to_s => 12, users(:lead_user).id.to_s => 15 })
+
+    post resolve_data_conflict_path(@conflict), params: { resolution: "14" }
+
+    assert_equal "14", @conflict.reload.resolution_value
+    assert_equal 14, @secondary_entry.reload.data["teleop_fuel_made"]
   end
 
   test "admin can resolve a conflict" do

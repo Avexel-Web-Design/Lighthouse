@@ -55,3 +55,4 @@ class DataConflictsController < ApplicationController
     scout_ids -= @entries_by_conflict.values.flatten.map(&:user_id).uniq
     @users_by_id = User.where(id: scout_ids).index_by(&:id) if scout_ids.any?
   end
+end

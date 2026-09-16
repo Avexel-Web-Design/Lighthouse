@@ -31,16 +31,17 @@ class ScoutingAssignmentNotificationJob < ApplicationJob
       notified_column = "notified_#{ahead}_at"
       next if assignment.public_send(notified_column).present?
 
-      delivered = PushNotificationService.new(assignment.user).send_assignment_notification!(
-        assignment: assignment,
-        matches_ahead: ahead
-      )
-      next unless delivered
+      ScoutingAssignment.transaction(requires_new: true) do
+        claimed = ScoutingAssignment.where(id: assignment.id, notified_column => nil)
+                                    .update_all(notified_column => Time.current)
+        next unless claimed == 1
 
-      # Idempotent claim: only the first writer wins. A concurrent run that
-      # already marked this threshold affects 0 rows and is treated as done.
-      ScoutingAssignment.where(id: assignment.id, notified_column => nil)
-                        .update_all(notified_column => Time.current)
+        delivered = PushNotificationService.new(assignment.user).send_assignment_notification!(
+          assignment: assignment,
+          matches_ahead: ahead
+        )
+        ScoutingAssignment.where(id: assignment.id).update_all(notified_column => nil) unless delivered
+      end
     end
   end
 

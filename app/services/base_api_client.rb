@@ -25,7 +25,7 @@ class BaseApiClient
   # Uses skip_nil so transient failures are not negatively cached.
   def cached_get(cache_key, path, params = {}, expires_in:, log_prefix:)
     Rails.cache.fetch(cache_key, expires_in: expires_in, skip_nil: true) do
-      response = @conn.get(path, params)
+      response = @conn.get(path.delete_prefix("/"), params)
 
       if response.success?
         response.body

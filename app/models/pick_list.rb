@@ -41,16 +41,9 @@ class PickList < ApplicationRecord
 
   # Single batched lookup for all event teams: Set of ids + team_number => id.
   # Replaces per-entry find_by calls and per-validation count queries.
-  # Memoized per event so normalize + validation share one fetch.
   def team_lookup_maps
-    cache_key = event&.id || "all"
-    if defined?(@team_lookup_cache_key) && @team_lookup_cache_key == cache_key && defined?(@team_lookup_maps)
-      return @team_lookup_maps
-    end
-
     rows = team_scope.pluck(:id, :team_number)
-    @team_lookup_cache_key = cache_key
-    @team_lookup_maps = [ rows.map(&:first).to_set, rows.to_h { |id, number| [ number, id ] } ]
+    [ rows.map(&:first).to_set, rows.to_h { |id, number| [ number, id ] } ]
   end
 
   def extract_team_id(entry, scalar_mode: nil, ids_set: nil, number_to_id: nil)
