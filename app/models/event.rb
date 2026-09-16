@@ -25,7 +25,8 @@ class Event < ApplicationRecord
     championship_finals: 4,
     district_championship_division: 5,
     festival_of_champions: 6,
-    offseason: 99
+    offseason: 99,
+    preseason: 100
   }, validate: false
 
   # Validations
@@ -60,14 +61,7 @@ class Event < ApplicationRecord
       missing_numbers = (1..QUALIFICATION_MATCH_COUNT).to_a - existing_numbers
 
       missing_numbers.each do |match_number|
-        begin
-          matches.create!(comp_level: "qm", set_number: 1, match_number: match_number)
-        rescue ActiveRecord::RecordNotUnique
-          # Lost a race with a concurrent scaffold or TBA sync. The
-          # UNIQUE(event, comp_level, set_number, match_number) index
-          # guarantees a single row; the winner's row is the one we want.
-          next
-        end
+        matches.find_or_create_by!(comp_level: "qm", set_number: 1, match_number: match_number)
       end
     end
   end

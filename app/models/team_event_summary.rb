@@ -14,7 +14,9 @@ class TeamEventSummary < ApplicationRecord
   # Uses CONCURRENTLY when possible (requires a unique index and prior population).
   # Falls back to a blocking refresh on the first run when the view is unpopulated.
   def self.refresh!
-    connection.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY #{table_name}")
+    connection.transaction(requires_new: true) do
+      connection.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY #{table_name}")
+    end
   rescue ActiveRecord::StatementInvalid => e
     raise unless unpopulated_view_error?(e)
 
@@ -26,8 +28,8 @@ class TeamEventSummary < ApplicationRecord
   # English message text, which varies across PostgreSQL versions. The
   # message match remains as a fallback for adapters that hide the cause.
   def self.unpopulated_view_error?(error)
-    if defined?(PG::Result)
-      sqlstate = error.cause&.result&.error_field(PG::Result::PG_DIAG_SQLSTATE)
+    if defined?(PG::Result) && error.cause.respond_to?(:result)
+      sqlstate = error.cause.result&.error_field(PG::Result::PG_DIAG_SQLSTATE)
       return true if sqlstate == "55000"
     end
 

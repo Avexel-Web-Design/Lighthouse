@@ -45,7 +45,7 @@
 
       <div>
         <%= f.label :event_type, class: "block text-sm font-medium text-gray-300 mb-1" %>
-        <%= f.select :event_type, options_for_select([["Regional", 0], ["District", 1], ["District Championship", 2], ["Championship", 3], ["Offseason", 99]], event.event_type_before_type_cast), {}, class: "input-field" %>
+        <%= f.select :event_type, options_for_select(Event.event_types.keys.map { |type| [type.humanize, type] }, event.event_type), {}, class: "input-field" %>
       </div>
     </div>
   <% else %>

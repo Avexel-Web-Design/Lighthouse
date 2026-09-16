@@ -47,12 +47,8 @@ class AddP1DataIntegrityIndexes < ActiveRecord::Migration[8.1]
 
   private
 
-  # Rebuilds team_event_summaries with the counted statuses derived from the
-  # ScoutingEntry enum instead of hardcoded magic numbers. Evaluated when the
-  # migration runs; the resulting SQL matches the previous `status IN (0, 3)`.
   def rebuild_team_event_summaries!
-    counted = ScoutingEntry.statuses.values_at("submitted", "approved")
-    status_sql = "status IN (#{counted.join(", ")})" # e.g. status IN (0, 3)
+    status_sql = "status IN (0, 3)"
 
     execute "DROP MATERIALIZED VIEW IF EXISTS team_event_summaries"
 

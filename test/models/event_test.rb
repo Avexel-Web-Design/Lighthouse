@@ -7,6 +7,15 @@ class EventTest < ActiveSupport::TestCase
     assert events(:championship).valid?
   end
 
+  test "preseason event types survive integer string and symbol assignments" do
+    event = events(:championship)
+    [ 100, "100", :preseason ].each do |type|
+      event.update!(event_type: type)
+      assert_equal "preseason", event.reload.event_type
+      assert_equal 100, event.event_type_before_type_cast
+    end
+  end
+
   test "requires unique tba_key" do
     duplicate = Event.new(
       name: "Duplicate",

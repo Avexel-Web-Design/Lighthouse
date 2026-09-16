@@ -1,8 +1,6 @@
-# Simulation Results (team refs are team_numbers; blue overlaps red because the
-# fixture event only has 4 teams and alliances must be 3v3 from event teams)
 sim_254_vs_1678:
   red_team_ids: '[254, 4414, 118]'
-  blue_team_ids: '[1678, 4414, 118]'
+  blue_team_ids: '[1678]'
   results: '{"red_avg": 87.3, "blue_avg": 71.5, "red_win_pct": 72.4, "blue_win_pct": 27.6, "margin_of_victory": 15.8}'
   iterations: 1000
   name: "254 Alliance vs 1678 Alliance"

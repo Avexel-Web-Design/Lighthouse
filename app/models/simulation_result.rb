@@ -6,7 +6,7 @@ class SimulationResult < ApplicationRecord
 
   validates :red_team_ids, presence: true
   validates :blue_team_ids, presence: true
-  validate :alliances_must_be_three_vs_three
+  validate :valid_alliance_references
   validate :alliance_teams_must_belong_to_event
 
   def red_teams
@@ -39,28 +39,36 @@ class SimulationResult < ApplicationRecord
 
   private
 
-  # Alliance columns store FrcTeam ids (what the simulator UI submits), but
-  # older rows used team_numbers. Accepts positive integers and integer
-  # strings from either scheme so both keep resolving.
   def team_ref_list(value)
-    parsed = value.is_a?(String) ? (JSON.parse(value) rescue []) : value
-    Array(parsed).filter_map do |entry|
+    parsed = value.is_a?(String) ? JSON.parse(value) : value
+    return [] unless parsed.is_a?(Array)
+
+    parsed.map do |entry|
       case entry
       when Integer then entry if entry.positive?
       when String then entry.to_i if entry.match?(/\A\d+\z/) && entry.to_i.positive?
       end
     end
+  rescue JSON::ParserError
+    []
+  end
+
+  def resolved_team_ids(refs)
+    ids = FrcTeam.where(id: refs.compact).pluck(:id)
+    numbers = FrcTeam.where(team_number: refs.compact - ids).pluck(:team_number, :id).to_h
+    refs.map { |ref| ids.include?(ref) ? ref : numbers[ref] }
   end
 
   def teams_for(refs)
-    FrcTeam.where(id: refs).or(FrcTeam.where(team_number: refs))
+    FrcTeam.where(id: resolved_team_ids(refs).compact)
   end
 
-  def alliances_must_be_three_vs_three
+  def valid_alliance_references
     { red_team_ids: red_team_ids, blue_team_ids: blue_team_ids }.each do |attr, value|
-      next if team_ref_list(value).size == 3
+      refs = team_ref_list(value)
+      next if refs.present? && refs.none?(&:nil?)
 
-      errors.add(attr, "must contain exactly 3 teams")
+      errors.add(attr, "must contain valid team references")
     end
   end
 
@@ -68,14 +76,12 @@ class SimulationResult < ApplicationRecord
     return if event.blank?
 
     at_event_ids = FrcTeam.at_event(event).ids
-    at_event_numbers = FrcTeam.at_event(event).pluck(:team_number)
 
     { red_team_ids: red_team_ids, blue_team_ids: blue_team_ids }.each do |attr, value|
-      refs = team_ref_list(value)
-      next unless refs.size == 3
+      ids = resolved_team_ids(team_ref_list(value))
+      next if (ids - at_event_ids).empty?
 
-      missing = refs.reject { |ref| at_event_ids.include?(ref) || at_event_numbers.include?(ref) }
-      errors.add(attr, "must only include teams from the selected event") if missing.any?
+      errors.add(attr, "must only include teams from the selected event")
     end
   end
 end

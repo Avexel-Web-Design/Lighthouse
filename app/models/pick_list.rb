@@ -9,36 +9,25 @@ class PickList < ApplicationRecord
 
   before_validation :normalize_entries
 
-  # Membership is memoized per entries assignment so normalize + validation +
-  # readers share a single DB resolution instead of re-resolving repeatedly.
   def ordered_team_ids
-    @ordered_team_ids ||= compute_ordered_team_ids
+    resolve_entries(Array(entries)).first
   end
 
   def team_count
     ordered_team_ids.size
   end
 
-  def entries=(value)
-    @ordered_team_ids = nil
-    @invalid_pick_entries = nil
-    super
-  end
-
   private
 
   def normalize_entries
     resolved, invalid = resolve_entries(Array(entries))
-    self.entries = resolved
-    @ordered_team_ids = resolved
-    @invalid_pick_entries = invalid
+    self.entries = resolved if invalid.empty?
   end
 
   def entries_belong_to_event
     return if event.blank?
 
-    invalid = @invalid_pick_entries
-    _, invalid = resolve_entries(Array(entries)) if invalid.nil?
+    _, invalid = resolve_entries(Array(entries))
     return if invalid.empty?
 
     errors.add(:entries, "contain teams that are not part of the selected event")
@@ -62,7 +51,7 @@ class PickList < ApplicationRecord
       end
     end
 
-    [resolved.uniq, invalid]
+    [ resolved.uniq, invalid ]
   end
 
   def blank_pick_entry?(entry)
@@ -72,10 +61,6 @@ class PickList < ApplicationRecord
     when Array, Hash then entry.empty?
     else false
     end
-  end
-
-  def compute_ordered_team_ids
-    resolve_entries(Array(entries)).first
   end
 
   def extract_team_id(entry, scalar_mode: nil)
