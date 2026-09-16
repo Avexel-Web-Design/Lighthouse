@@ -31,8 +31,15 @@ export default class extends Controller {
   }
 
   connect() {
+    this._generation = (this._generation || 0) + 1
+    this._starting = false
     this.animationId = null
     this.stream = null
+    // Throttle jsQR (expensive) — scan at most every 250ms while the rAF
+    // loop keeps running for a smooth preview. Also tracks the resume timer
+    // so disconnect() never fires a tick after teardown.
+    this._lastScanAt = 0
+    this._resumeTimeout = null
 
     if (!cameraSupported()) {
       this.statusTarget.textContent = "Camera access is not supported on this device or browser."
@@ -46,18 +53,29 @@ export default class extends Controller {
   }
 
   disconnect() {
+    if (this._resumeTimeout) {
+      clearTimeout(this._resumeTimeout)
+      this._resumeTimeout = null
+    }
     this.stopScanning()
   }
 
   async start() {
-    if (this.scanningValue) return
+    if (this.scanningValue || this._starting) return
+    this._starting = true
+    const generation = this._generation
 
     try {
-      this.stream = await requestCameraStream()
-
-      this.videoTarget.srcObject = this.stream
+      const stream = await requestCameraStream()
+      if (generation !== this._generation || !this.element.isConnected) {
+        stopCameraStream(stream)
+        return
+      }
+      this.stream = stream
+      this.videoTarget.srcObject = stream
       this.videoTarget.setAttribute("playsinline", true)
       await this.videoTarget.play()
+      if (generation !== this._generation || !this.element.isConnected) return
 
       this.scanningValue = true
       this.statusTarget.textContent = "Point camera at a QR code..."
@@ -70,9 +88,14 @@ export default class extends Controller {
 
       this.tick()
     } catch (err) {
-      console.error("Camera access failed:", err)
-      this.statusTarget.textContent = cameraErrorMessage(err, await getCameraPermissionState())
+      const permission = await getCameraPermissionState()
+      if (generation !== this._generation || !this.element.isConnected) return
+      stopCameraStream(this.stream)
+      this.stream = null
+      this.statusTarget.textContent = cameraErrorMessage(err, permission)
       this.statusTarget.className = "text-sm text-red-400 mt-3"
+    } finally {
+      if (generation === this._generation) this._starting = false
     }
   }
 
@@ -83,11 +106,19 @@ export default class extends Controller {
     }
     this.previewTarget.classList.add("hidden")
     this.statusTarget.textContent = "Scanner stopped."
-    this.statusTarget.className = "text-sm text-gray-500 mt-3"
+    this.statusTarget.className = "text-sm text-gray-400 mt-3"
   }
 
   stopScanning() {
+    this._generation++
+    this._starting = false
+    this._request?.abort()
     this.scanningValue = false
+
+    if (this._resumeTimeout) {
+      clearTimeout(this._resumeTimeout)
+      this._resumeTimeout = null
+    }
 
     if (this.animationId) {
       cancelAnimationFrame(this.animationId)
@@ -97,6 +128,11 @@ export default class extends Controller {
     if (this.stream) {
       stopCameraStream(this.stream)
       this.stream = null
+    }
+
+    if (this.hasVideoTarget) {
+      this.videoTarget.pause?.()
+      this.videoTarget.srcObject = null
     }
   }
 
@@ -108,6 +144,15 @@ export default class extends Controller {
       this.animationId = requestAnimationFrame(() => this.tick())
       return
     }
+
+    // Throttle: jsQR on every 60fps frame janks mobile CPUs. Run the decode
+    // at most ~4x/sec; the rAF loop itself stays cheap.
+    const now = performance.now()
+    if (now - this._lastScanAt < 250) {
+      this.animationId = requestAnimationFrame(() => this.tick())
+      return
+    }
+    this._lastScanAt = now
 
     const canvas = this.canvasTarget
     const ctx = canvas.getContext("2d", { willReadFrequently: true })
@@ -128,6 +173,7 @@ export default class extends Controller {
   }
 
   async handleScan(rawData) {
+    const generation = this._generation
     // Pause scanning while processing
     this.scanningValue = false
 
@@ -142,8 +188,11 @@ export default class extends Controller {
       this.appendResult("error", "Invalid QR code — not a Lighthouse scouting entry.", null)
     }
 
+    if (generation !== this._generation || !this.element.isConnected) return
     // Resume scanning after a short delay
-    setTimeout(() => {
+    if (this._resumeTimeout) clearTimeout(this._resumeTimeout)
+    this._resumeTimeout = setTimeout(() => {
+      this._resumeTimeout = null
       if (this.stream) {
         this.scanningValue = true
         this.statusTarget.textContent = "Scanning for next QR code..."
@@ -155,6 +204,8 @@ export default class extends Controller {
 
   async submitEntry(entry) {
     const csrfToken = document.querySelector("meta[name='csrf-token']")?.content
+    const generation = this._generation
+    this._request = new AbortController()
 
     try {
       const response = await fetch(this.importUrlValue, {
@@ -164,6 +215,7 @@ export default class extends Controller {
           "X-CSRF-Token": csrfToken,
         },
         credentials: "same-origin",
+        signal: this._request.signal,
         body: JSON.stringify({ entry }),
       })
 
@@ -173,6 +225,7 @@ export default class extends Controller {
       }
 
       const result = await response.json()
+      if (generation !== this._generation || !this.element.isConnected) return
 
       if (result.status === "created") {
         this.appendResult("created", `Team ${result.team_number} — ${result.match_name}`, result.id)
@@ -186,6 +239,7 @@ export default class extends Controller {
         this.appendResult("error", `Import failed: ${(result.errors || []).join(", ")}`, null)
       }
     } catch (err) {
+      if (generation !== this._generation) return
       console.error("Import request failed:", err)
       this.appendResult("error", `Network error: ${err.message}`, null)
     }
@@ -204,21 +258,43 @@ export default class extends Controller {
       error:    "text-red-400 border-red-500/30",
     }
 
+    // Static glyphs only — never interpolated HTML. Rendered via textContent.
     const icons = {
-      created:  "&#10003;",  // checkmark
-      updated:  "&#8635;",   // refresh
-      existing: "&#8212;",   // dash
-      skipped:  "&#8594;",   // arrow
-      error:    "&#10007;",  // X
+      created:  "✓",
+      updated:  "↻",
+      existing: "—",
+      skipped:  "→",
+      error:    "✕",
     }
 
     const div = document.createElement("div")
     div.className = `flex items-center gap-2 p-3 rounded-lg border bg-gray-900/50 ${colors[status] || colors.error}`
-    div.innerHTML = `
-      <span class="text-lg font-bold">${icons[status] || "?"}</span>
-      <span class="text-sm flex-1">${message}</span>
-      ${entryId ? `<a href="/scouting_entries/${entryId}" class="text-xs text-orange-400 hover:text-orange-300 underline">View</a>` : ""}
-    `
+    // Text label (not color-only) for AT.
+    div.setAttribute("role", status === "error" ? "alert" : "status")
+
+    const icon = document.createElement("span")
+    icon.className = "text-lg font-bold"
+    icon.setAttribute("aria-hidden", "true")
+    icon.textContent = icons[status] || "?"
+    div.appendChild(icon)
+
+    const text = document.createElement("span")
+    text.className = "text-sm flex-1"
+    // Server-controlled strings (team number, match name, error list) enter
+    // the DOM via textContent only — never innerHTML.
+    text.textContent = message
+    div.appendChild(text)
+
+    // entryId comes from the server JSON response. Only render a link for
+    // integer ids to avoid javascript: / path-traversal injection.
+    const numericId = Number(entryId)
+    if (Number.isInteger(numericId) && numericId > 0) {
+      const link = document.createElement("a")
+      link.href = `/scouting_entries/${numericId}`
+      link.className = "text-xs text-orange-400 hover:text-orange-300 underline"
+      link.textContent = "View"
+      div.appendChild(link)
+    }
 
     if (this.hasListTarget) {
       this.listTarget.prepend(div)

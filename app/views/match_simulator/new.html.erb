@@ -53,15 +53,19 @@
       </div>
     </div>
 
-    <button type="submit" class="w-full py-3 text-lg font-bold bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl transition-all duration-150 cursor-pointer shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950">
+    <button type="submit" class="btn-submit">
       Simulate Match
     </button>
   <% end %>
 
-  <%# Results area %>
+  <%# Results area — Turbo Frame stays in place across submissions (flash
+      dismiss only removes its own node, never this frame). %>
   <%= turbo_frame_tag "simulator_results" do %>
     <% if defined?(@red_score) && @red_score %>
-      <div class="mt-6 animate-fade-in" aria-live="polite">
+      <div class="mt-6 animate-fade-in" aria-live="polite"
+           data-controller="simulator"
+           data-simulator-red-score-value="<%= @red_score.to_f.round(1) %>"
+           data-simulator-blue-score-value="<%= @blue_score.to_f.round(1) %>">
         <h2 class="text-lg font-bold text-white mb-4">Simulation Results</h2>
 
         <%# Score Cards %>
@@ -69,22 +73,24 @@
           <%# Red Score %>
           <div class="scout-card border-red-500/30 p-4 text-center">
             <p class="text-xs text-red-400 uppercase tracking-wider mb-1 font-medium">Red Alliance</p>
-            <p class="text-4xl font-black text-red-400 font-mono"><%= @red_score.round(1) %></p>
-            <p class="text-xs text-gray-500 mt-1">predicted pts</p>
+            <p class="text-4xl font-black text-red-400 font-mono" data-simulator-target="redScore"><%= @red_score.round(1) %></p>
+            <p class="text-xs text-gray-400 mt-1">predicted pts</p>
+            <p class="text-[11px] font-bold text-red-300 mt-1" data-simulator-target="redWin">Red favored</p>
           </div>
 
           <%# VS %>
           <div class="flex items-center justify-center">
             <div class="w-12 h-12 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center">
-              <span class="text-lg font-black text-gray-500">VS</span>
+              <span class="text-lg font-black text-gray-400">VS</span>
             </div>
           </div>
 
           <%# Blue Score %>
           <div class="scout-card border-blue-500/30 p-4 text-center">
             <p class="text-xs text-blue-400 uppercase tracking-wider mb-1 font-medium">Blue Alliance</p>
-            <p class="text-4xl font-black text-blue-400 font-mono"><%= @blue_score.round(1) %></p>
-            <p class="text-xs text-gray-500 mt-1">predicted pts</p>
+            <p class="text-4xl font-black text-blue-400 font-mono" data-simulator-target="blueScore"><%= @blue_score.round(1) %></p>
+            <p class="text-xs text-gray-400 mt-1">predicted pts</p>
+            <p class="text-[11px] font-bold text-blue-300 mt-1" data-simulator-target="blueWin">Blue favored</p>
           </div>
         </div>
 
@@ -95,7 +101,7 @@
              blue_pct = @blue_win_pct %>
           <div class="flex items-center gap-3 mb-2">
             <span class="text-sm font-bold text-red-400 w-16 text-right font-mono"><%= red_pct %>%</span>
-            <div class="flex-1 h-6 bg-gray-800 rounded-full overflow-hidden flex" role="progressbar" aria-label="Win probability: Red <%= red_pct %>%, Blue <%= blue_pct %>%">
+            <div class="flex-1 h-6 bg-gray-800 rounded-full overflow-hidden flex" role="progressbar" aria-label="Win probability: Red <%= red_pct %>%, Blue <%= blue_pct %>%" aria-valuenow="<%= red_pct %>" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Red <%= red_pct %>%, Blue <%= blue_pct %>%">
               <div class="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-500 rounded-l-full" style="width: <%= red_pct %>%"></div>
               <div class="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 rounded-r-full" style="width: <%= blue_pct %>%"></div>
             </div>
@@ -106,7 +112,7 @@
           <% margin = (@red_score - @blue_score).abs.round(1)
              red_wins = @red_score >= @blue_score %>
           <div class="text-center mt-4 pt-4 border-t border-gray-800">
-            <p class="text-xs text-gray-500">Predicted Margin of Victory</p>
+            <p class="text-xs text-gray-400">Predicted Margin of Victory</p>
             <p class="text-2xl font-bold mt-1 font-mono <%= red_wins ? 'text-red-400' : 'text-blue-400' %>"><%= margin %> pts</p>
             <p class="text-sm <%= red_wins ? 'text-red-400/70' : 'text-blue-400/70' %>"><%= red_wins ? 'Red' : 'Blue' %> Alliance favored</p>
           </div>
@@ -122,7 +128,7 @@
                   <div class="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2">
                     <div class="flex items-center gap-2">
                       <span class="font-bold text-<%= color %>-400 font-mono"><%= ts[:team].team_number %></span>
-                      <span class="text-gray-500 text-xs"><%= ts[:team].nickname %></span>
+                      <span class="text-gray-400 text-xs"><%= ts[:team].nickname %></span>
                     </div>
                     <div class="flex items-center gap-2">
                       <% case ts[:source] %>

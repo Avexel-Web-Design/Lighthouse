@@ -11,7 +11,7 @@
       <h1 class="text-2xl font-bold text-white">Replay Scout</h1>
       <p class="text-sm text-gray-400 mt-1">Scout already-played matches with replay video and fill the gaps in coverage.</p>
     </div>
-    <span class="ml-auto text-xs text-gray-500 uppercase tracking-[0.2em]"><%= current_event.name %></span>
+    <span class="ml-auto text-xs text-gray-400 uppercase tracking-[0.2em]"><%= current_event.name %></span>
   </div>
 
   <section class="space-y-6"
@@ -28,7 +28,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 class="text-sm font-semibold text-white">Replay Match Picker</h2>
-            <p class="text-xs text-gray-500 mt-1"><%= @replay_matches.count %> qualification matches with replay video</p>
+            <p class="text-xs text-gray-400 mt-1"><%= @replay_matches.count %> qualification matches with replay video</p>
           </div>
           <%= link_to "Live Scout", new_scouting_entry_path, class: "btn-secondary text-xs whitespace-nowrap" %>
         </div>
@@ -88,7 +88,7 @@
             <span class="inline-flex items-center rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-200">
               <%= @selected_match.display_name %>
             </span>
-            <span class="text-xs text-gray-500"><%= @selected_match.best_known_time&.strftime("%A, %b %d at %l:%M %p") || "Played match" %></span>
+            <span class="text-xs text-gray-400"><%= @selected_match.best_known_time&.strftime("%A, %b %d at %l:%M %p") || "Played match" %></span>
             <% if @selected_video.present? %>
               <%= link_to "Open YouTube", replay_watch_url_for(@selected_match, @selected_video["raw_key"]), class: "btn-secondary text-xs", target: "_blank", rel: "noopener" %>
             <% end %>
@@ -170,7 +170,7 @@
         <div class="scout-card p-4 sm:p-5 mb-6">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p class="text-xs uppercase tracking-[0.2em] text-gray-500 mb-2">Selected Match</p>
+              <p class="text-xs uppercase tracking-[0.2em] text-gray-400 mb-2">Selected Match</p>
               <h2 class="text-2xl font-bold text-white"><%= @selected_match.display_name %></h2>
               <p class="text-sm text-gray-400 mt-1"><%= @selected_match.best_known_time&.strftime("%A, %b %d at %l:%M %p") || "Played match" %></p>
             </div>
@@ -219,7 +219,7 @@
               <div class="scout-card p-4" data-controller="video-overlay" data-video-overlay-step-value="full_match">
                 <div class="flex items-start justify-between gap-3 mb-3">
                   <div>
-                    <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Step 1</p>
+                    <p class="text-xs uppercase tracking-[0.2em] text-gray-400">Step 1</p>
                     <h3 class="text-lg font-semibold text-white">Score Make/Miss Over Replay</h3>
                     <p class="text-sm text-gray-400 mt-1">Keep the replay running and tap the large controls over the video for the whole match.</p>
                   </div>
@@ -270,11 +270,11 @@
 
                     <div class="grid grid-cols-2 gap-3">
                       <div class="rounded-xl bg-gray-900 border border-gray-800 p-3 text-center">
-                        <p class="text-xs uppercase tracking-wide text-gray-500"><%= label %> made</p>
+                        <p class="text-xs uppercase tracking-wide text-gray-400"><%= label %> made</p>
                         <p class="text-3xl font-bold text-emerald-400 font-mono" data-replay-scouting-target="<%= phase %>Made">0</p>
                       </div>
                       <div class="rounded-xl bg-gray-900 border border-gray-800 p-3 text-center">
-                        <p class="text-xs uppercase tracking-wide text-gray-500"><%= label %> missed</p>
+                        <p class="text-xs uppercase tracking-wide text-gray-400"><%= label %> missed</p>
                         <p class="text-3xl font-bold text-red-400 font-mono" data-replay-scouting-target="<%= phase %>Missed">0</p>
                       </div>
                     </div>
@@ -283,19 +283,19 @@
 
                 <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                   <div class="rounded-xl bg-gray-900/80 border border-gray-800 p-3">
-                    <p class="text-xs text-gray-500 uppercase tracking-wide">Made</p>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide">Made</p>
                     <p class="text-2xl font-bold text-emerald-400 font-mono" data-replay-scouting-target="totalMade">0</p>
                   </div>
                   <div class="rounded-xl bg-gray-900/80 border border-gray-800 p-3">
-                    <p class="text-xs text-gray-500 uppercase tracking-wide">Missed</p>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide">Missed</p>
                     <p class="text-2xl font-bold text-red-400 font-mono" data-replay-scouting-target="totalMissed">0</p>
                   </div>
                   <div class="rounded-xl bg-gray-900/80 border border-gray-800 p-3">
-                    <p class="text-xs text-gray-500 uppercase tracking-wide">Accuracy</p>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide">Accuracy</p>
                     <p class="text-2xl font-bold text-amber-400 font-mono" data-replay-scouting-target="summaryAccuracy">0.0%</p>
                   </div>
                   <div class="rounded-xl bg-gray-900/80 border border-gray-800 p-3">
-                    <p class="text-xs text-gray-500 uppercase tracking-wide">Points</p>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide">Points</p>
                     <p class="text-2xl font-bold text-white font-mono" data-replay-scouting-target="totalPoints">0</p>
                   </div>
                 </div>
@@ -305,7 +305,7 @@
                 <div class="scout-card p-4">
                   <div class="flex items-start justify-between gap-3 mb-3">
                     <div>
-                      <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Step 2</p>
+                      <p class="text-xs uppercase tracking-[0.2em] text-gray-400">Step 2</p>
                       <h3 class="text-lg font-semibold text-white">Endgame Review</h3>
                       <p class="text-sm text-gray-400 mt-1">Review pathing, climb details, defense, and final notes after scoring is complete.</p>
                     </div>
@@ -337,10 +337,11 @@
 
                   <div class="space-y-4">
                     <div class="flex items-center justify-between bg-gray-900 rounded-lg px-4 py-3 cursor-pointer transition-all duration-150 hover:bg-gray-800/80"
-                         data-action="click->replay-scouting#toggleAutonClimb"
+                         data-action="click->replay-scouting#toggleAutonClimb keydown->replay-scouting#toggleAutonClimbFromKey"
                          data-replay-scouting-target="autonClimb"
                          role="switch"
                          aria-checked="<%= @scouting_entry.data&.dig('auton_climb') == true ? 'true' : 'false' %>"
+                         aria-label="Toggle autonomous climb"
                          tabindex="0">
                       <span class="text-sm font-medium text-gray-300">Auton Climb (+15 pts)</span>
                       <div class="w-12 h-7 rounded-full transition-colors duration-200 bg-gray-700 flex items-center relative" data-toggle-track>
@@ -349,36 +350,44 @@
                     </div>
 
                     <div>
-                      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2 font-medium">Climb Level</p>
-                      <div class="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Select climb level">
+                      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2 font-medium" id="replay-climb-label">Climb Level</p>
+                      <div class="grid grid-cols-4 gap-2" role="radiogroup" aria-labelledby="replay-climb-label">
                         <% [["None", 0], ["L1", 10], ["L2", 20], ["L3", 30]].each do |level, points| %>
                           <% is_selected = level == (@scouting_entry.data&.dig('endgame_climb') || 'None') %>
                           <button type="button"
                                   class="py-4 rounded-xl border-2 text-center transition-all duration-200 <%= is_selected ? 'ring-2 ring-orange-400 bg-orange-500/15 border-orange-500 shadow-lg shadow-orange-500/10' : 'bg-gray-900 border-gray-800 hover:border-gray-700' %>"
-                                  data-action="click->replay-scouting#selectClimb"
+                                  data-action="click->replay-scouting#selectClimb keydown->replay-scouting#navigateRadio"
                                   data-climb-card
-                                  data-level="<%= level %>">
+                                  data-level="<%= level %>"
+                                  role="radio"
+                                  aria-checked="<%= is_selected %>"
+                                  tabindex="<%= is_selected ? 0 : -1 %>"
+                                  aria-label="<%= level %> climb - <%= points %> points">
                             <p class="text-lg font-bold <%= is_selected ? 'text-orange-400' : 'text-gray-300' %>"><%= level %></p>
-                            <p class="text-xs text-gray-500"><%= points %> pts</p>
+                            <p class="text-xs text-gray-400"><%= points %> pts</p>
                           </button>
                         <% end %>
                       </div>
                     </div>
 
                     <div>
-                      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2 font-medium">Defence Rating</p>
-                      <div class="grid grid-cols-6 gap-2" role="radiogroup" aria-label="Rate defence quality">
+                      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2 font-medium" id="replay-defence-label">Defence Rating</p>
+                      <div class="grid grid-cols-6 gap-2" role="radiogroup" aria-labelledby="replay-defence-label">
                         <% defence_labels = { 0 => 'No Defence', 1 => 'Weak', 2 => 'Below Avg', 3 => 'Average', 4 => 'Strong', 5 => 'Dominant' } %>
                         <% current_defense = (@scouting_entry.data&.dig('defense_rating') || 0).to_i %>
                         <% (0..5).each do |rating| %>
                           <% is_selected = rating == current_defense %>
                           <button type="button"
                                   class="py-3 rounded-xl border-2 text-center transition-all duration-200 <%= is_selected ? 'ring-2 ring-orange-400 bg-orange-500/15 border-orange-500 shadow-lg shadow-orange-500/10' : 'bg-gray-900 border-gray-800 hover:border-gray-700' %>"
-                                  data-action="click->replay-scouting#selectDefense"
+                                  data-action="click->replay-scouting#selectDefense keydown->replay-scouting#navigateRadio"
                                   data-defense-card
-                                  data-rating="<%= rating %>">
+                                  data-rating="<%= rating %>"
+                                  role="radio"
+                                  aria-checked="<%= is_selected %>"
+                                  tabindex="<%= is_selected ? 0 : -1 %>"
+                                  aria-label="<%= defence_labels[rating] %> defence - <%= rating %> out of 5">
                             <p class="text-lg font-bold <%= is_selected ? 'text-orange-400' : 'text-gray-300' %>"><%= rating.zero? ? 'x' : rating %></p>
-                            <p class="text-[10px] text-gray-500 leading-tight"><%= defence_labels[rating] %></p>
+                            <p class="text-[10px] text-gray-400 leading-tight"><%= defence_labels[rating] %></p>
                           </button>
                         <% end %>
                       </div>

@@ -55,7 +55,9 @@ export default class extends Controller {
   syncHiddenInputs(container, ids) {
     if (!container) return
 
-    container.innerHTML = ""
+    // replaceChildren (not innerHTML="") so existing nodes/values are
+    // dropped without ever parsing HTML.
+    container.replaceChildren()
     ids.forEach(id => {
       const input = document.createElement("input")
       input.type = "hidden"

@@ -2,14 +2,17 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   connect() {
-    // Slide in from the left
-    this.element.style.opacity = "0"
-    this.element.style.transform = "translateX(-1rem)"
-    this.element.style.transition = "opacity 0.2s ease-out, transform 0.2s ease-out"
+    // Tailwind-only animation (no inline styles): .toast-card starts hidden,
+    // .toast-visible slides in. Works with Turbo Drive + Turbo Frames because
+    // Stimulus reconnects on every frame render and dismiss() only removes
+    // this element — never the surrounding turbo-frame.
+    this.element.classList.add("toast-card", "toast-hidden")
 
     requestAnimationFrame(() => {
-      this.element.style.opacity = "1"
-      this.element.style.transform = "translateX(0)"
+      requestAnimationFrame(() => {
+        this.element.classList.remove("toast-hidden")
+        this.element.classList.add("toast-visible")
+      })
     })
 
     this.timeout = setTimeout(() => this.dismiss(), 4000)
@@ -31,10 +34,11 @@ export default class extends Controller {
   dismiss() {
     clearTimeout(this.timeout)
 
-    this.element.style.transition = "opacity 0.2s ease-out, transform 0.2s ease-out"
-    this.element.style.opacity = "0"
-    this.element.style.transform = "translateX(-1rem)"
+    this.element.classList.remove("toast-visible")
+    this.element.classList.add("toast-hidden")
 
+    // Keep the Turbo Frame in the DOM — only remove this flash node so a
+    // surrounding <turbo-frame> stays usable for later stream updates.
     setTimeout(() => this.element.remove(), 200)
   }
 

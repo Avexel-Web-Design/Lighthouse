@@ -9,7 +9,7 @@
   <% # Team selector %>
   <%= form_with url: team_comparison_path, method: :get, class: "mb-6", data: { turbo_action: "replace" } do |f| %>
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-      <label class="block text-xs text-gray-500 uppercase tracking-wider mb-2">Select teams to compare (up to 6)</label>
+      <label class="block text-xs text-gray-400 uppercase tracking-wider mb-2">Select teams to compare (up to 6)</label>
       <div class="flex flex-wrap gap-2 mb-3">
         <% @all_teams.each do |team| %>
           <% selected = @teams.include?(team) %>
@@ -37,7 +37,7 @@
       <div class="max-w-2xl mx-auto">
         <canvas></canvas>
       </div>
-      <p class="text-xs text-gray-600 text-center mt-3">Normalized to best/worst at this event</p>
+      <p class="text-xs text-gray-400 text-center mt-3">Normalized to best/worst at this event</p>
     </div>
 
     <%# ===== PERFORMANCE OVER TIME CHART ===== %>
@@ -66,11 +66,12 @@
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
+            <caption class="sr-only">Pit scouting comparison by robot attribute across selected teams</caption>
             <thead>
-              <tr class="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                <th class="px-4 py-3 text-left">Attribute</th>
+              <tr class="text-gray-400 text-xs uppercase tracking-wider border-b border-gray-800">
+                <th scope="col" class="px-4 py-3 text-left">Attribute</th>
                 <% @teams.each do |team| %>
-                  <th class="px-4 py-3 text-center"><%= team.team_number %></th>
+                  <th scope="col" class="px-4 py-3 text-center"><%= team.team_number %></th>
                 <% end %>
               </tr>
             </thead>
@@ -91,7 +92,7 @@
     <% end %>
   <% else %>
     <div class="text-center py-16 bg-gray-900 border border-gray-800 rounded-xl">
-      <p class="text-gray-500">Select teams above to start comparing.</p>
+      <p class="text-gray-400">Select teams above to start comparing.</p>
     </div>
   <% end %>
 </div>

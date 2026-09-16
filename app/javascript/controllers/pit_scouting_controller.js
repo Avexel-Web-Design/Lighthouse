@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { openDB, PIT_STORE } from "lib/lighthouse_db"
+import { showToast } from "lib/toast"
 
 /**
  * Handles offline form submission for pit scouting entries.
@@ -98,26 +99,8 @@ export default class extends Controller {
   }
 
   #showOfflineConfirmation() {
-    const banner = document.createElement("div")
-    banner.className = "fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-600 text-white px-6 py-3 rounded-lg shadow-lg font-medium animate-slide-down"
-    banner.innerHTML = `
-      <div class="flex items-center gap-2">
-        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <div>
-          <span>Pit scout saved offline. It will sync when you reconnect.</span>
-          <span class="block text-xs text-amber-200 mt-0.5">Photos must be added after syncing.</span>
-        </div>
-      </div>
-    `
-    document.body.appendChild(banner)
-
-    setTimeout(() => {
-      banner.style.transition = "opacity 0.3s ease-out, transform 0.3s ease-out"
-      banner.style.opacity = "0"
-      banner.style.transform = "translate(-50%, -8px)"
-      setTimeout(() => banner.remove(), 300)
-    }, 4000)
+    // Shared toast (textContent-only, role=status) into the
+    // connectivity-owned #toast-stack — no duplicate fixed banners.
+    showToast("Pit scout saved offline. It will sync when you reconnect. Photos must be added after syncing.", { type: "info", duration: 5000 })
   }
 }

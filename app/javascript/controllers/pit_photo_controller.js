@@ -218,7 +218,9 @@ export default class extends Controller {
     if (!this.hasPreviewsTarget) return
 
     this.#clearPreviewUrls()
-    this.previewsTarget.innerHTML = ""
+    // replaceChildren (not innerHTML="") — file names are user-controlled
+    // and must only ever enter the DOM via textContent below.
+    this.previewsTarget.replaceChildren()
     this.previewsTarget.classList.toggle("hidden", files.length === 0)
 
     files.forEach((file) => {
