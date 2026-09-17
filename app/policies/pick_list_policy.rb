@@ -8,11 +8,11 @@ class PickListPolicy < ApplicationPolicy
   end
 
   def create?
-    analyst?
+    admin?
   end
 
   def update?
-    analyst?
+    admin?
   end
 
   def destroy?

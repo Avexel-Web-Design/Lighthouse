@@ -40,16 +40,6 @@ class ApplicationPolicy
     user.present? && user.admin?
   end
 
-  def lead?
-    # No separate lead role on User (scout/analyst/admin only);
-    # admin covers lead privileges per role hierarchy.
-    user.present? && user.admin?
-  end
-
-  def admin_or_lead?
-    admin? || lead?
-  end
-
   def analyst?
     user.present? && (user.admin? || user.analyst?)
   end
@@ -74,14 +64,6 @@ class ApplicationPolicy
 
     def admin?
       user.present? && user.admin?
-    end
-
-    def lead?
-      user.present? && user.admin?
-    end
-
-    def admin_or_lead?
-      admin? || lead?
     end
 
     def analyst?

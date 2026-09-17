@@ -27,6 +27,10 @@ class ScoutingEntryPolicy < ApplicationPolicy
     scout?
   end
 
+  def bulk_sync?
+    scout?
+  end
+
   def approve?
     admin?
   end

@@ -50,7 +50,7 @@ module Api
 
           entry = PitScoutingEntry.from_offline_data(permitted)
           begin
-            authorize entry
+            authorize entry, :sync?
           rescue Pundit::NotAuthorizedError
             results << { client_uuid: permitted[:client_uuid], status: "error", errors: [ "Forbidden" ] }
             next

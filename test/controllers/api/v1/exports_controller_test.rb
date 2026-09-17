@@ -28,6 +28,20 @@ class Api::V1::ExportsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "pit bulk sync uses the sync policy" do
+    post "/api/v1/pit_scouting_entries/bulk_sync", params: {
+      entries: [ {
+        event_id: @event.id,
+        frc_team_id: frc_teams(:team_118).id,
+        client_uuid: SecureRandom.uuid,
+        data: {}
+      } ]
+    }, headers: { "Authorization" => "Bearer #{@scout.api_token}" }, as: :json
+
+    assert_response :success
+    assert_equal "created", response.parsed_body.fetch("results").first.fetch("status")
+  end
+
   test "API rejects cross-event match scope" do
     other_event = Event.create!(name: "Other Event", tba_key: "2026other#{SecureRandom.hex(4)}", year: 2026)
 
