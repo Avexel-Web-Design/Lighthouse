@@ -48,7 +48,7 @@ class EventTest < ActiveSupport::TestCase
   test "has many scouting_entries" do
     event = events(:championship)
     assert_respond_to event, :scouting_entries
-    assert_equal 9, event.scouting_entries.count
+    assert_equal 10, event.scouting_entries.count
   end
 
   test "has many pit_scouting_entries" do

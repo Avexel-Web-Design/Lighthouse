@@ -12,6 +12,9 @@ class ScoutingAssignmentNotificationJobTest < ActiveJob::TestCase
 
     @assignment.update!(notified_1_at: nil)
     matches(:qm2).update!(red_score: nil, blue_score: nil)
+    # Clear later matches so Q1 is the latest completed (Q2 is 1 ahead)
+    matches(:qm3).update!(red_score: nil, blue_score: nil)
+    matches(:qm4).update!(red_score: nil, blue_score: nil)
     ENV["VAPID_PUBLIC_KEY"] = "public"
     ENV["VAPID_PRIVATE_KEY"] = "private"
 

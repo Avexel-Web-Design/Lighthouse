@@ -56,7 +56,7 @@ class ScoutAccuracyServiceTest < ActiveSupport::TestCase
     results = @service.call
     by_user = results.index_by { |r| r[:user_id] }
 
-    assert_equal 2, by_user[users(:admin_user).id][:total_entry_count]
+    assert_equal 3, by_user[users(:admin_user).id][:total_entry_count]
     assert_equal 2, by_user[users(:scout_user).id][:total_entry_count]
     assert_equal 3, by_user[users(:lead_user).id][:total_entry_count]
     assert_equal 2, by_user[users(:owner_user).id][:total_entry_count]

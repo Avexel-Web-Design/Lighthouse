@@ -42,13 +42,14 @@ class MatchAllianceTest < ActiveSupport::TestCase
   end
 
   test "same team can be in different matches" do
+    # team_6328 is in qm2/qm3/qm4 but not qm1, so qm1+6328 is a valid new combo
     alliance = MatchAlliance.new(
-      match: matches(:qm2),
-      frc_team: frc_teams(:team_4414),
+      match: matches(:qm1),
+      frc_team: frc_teams(:team_6328),
       alliance_color: "blue",
       station: 2
     )
-    assert alliance.valid?
+    assert alliance.valid?, alliance.errors.full_messages.to_sentence
   end
 
   # --- Associations ---

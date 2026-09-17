@@ -37,6 +37,9 @@ gem "thruster", require: false
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 gem "image_processing", "~> 1.2"
 
+# Pin JSON to 2.x for Rails 8.1 compatibility (JSON 3.x breaks ActiveSupport JSON decoding)
+gem "json", "~> 2.19"
+
 # Environment variables
 gem "dotenv-rails", groups: [ :development, :test ]
 

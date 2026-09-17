@@ -21,14 +21,29 @@ class PickList < ApplicationRecord
   private
 
   def normalize_entries
-    self.entries = ordered_team_ids
+    resolved = ordered_team_ids
+    raw = Array(entries).reject(&:blank?)
+    # Preserve raw invalid inputs so validation can report them
+    # instead of silently dropping to empty (which would pass validation).
+    return if raw.any? && resolved.empty?
+
+    self.entries = resolved
   end
 
   def entries_belong_to_event
-    return if ordered_team_ids.empty? || event.blank?
+    return if event.blank?
 
-    valid_ids = FrcTeam.at_event(event).where(id: ordered_team_ids).pluck(:id)
-    invalid_ids = ordered_team_ids - valid_ids
+    raw = Array(entries).reject(&:blank?)
+    return if raw.empty?
+
+    ordered = ordered_team_ids
+    if ordered.empty?
+      errors.add(:entries, "contain teams that are not part of the selected event")
+      return
+    end
+
+    valid_ids = FrcTeam.at_event(event).where(id: ordered).pluck(:id)
+    invalid_ids = ordered - valid_ids
     return if invalid_ids.empty?
 
     errors.add(:entries, "contain teams that are not part of the selected event")

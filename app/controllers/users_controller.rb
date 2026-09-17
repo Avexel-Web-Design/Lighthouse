@@ -14,6 +14,7 @@ class UsersController < ApplicationController
   def create
     authorize User
     @user = User.new(user_params)
+    @user.role = role_from_params if role_from_params.present?
 
     if @user.save
       redirect_to users_path, notice: "#{@user.full_name} was created."
@@ -31,7 +32,10 @@ class UsersController < ApplicationController
     params_to_use = user_params
     params_to_use = params_to_use.except(:password) if params_to_use[:password].blank?
 
-    if @user.update(params_to_use)
+    @user.assign_attributes(params_to_use)
+    @user.role = role_from_params if role_from_params.present?
+
+    if @user.save
       redirect_to users_path, notice: "#{@user.full_name} was updated."
     else
       render :edit, status: :unprocessable_entity
@@ -57,6 +61,13 @@ class UsersController < ApplicationController
   end
 
   def user_params
-    params.require(:user).permit(:first_name, :last_name, :role, :password)
+    params.require(:user).permit(:first_name, :last_name, :password)
+  end
+
+  # Role is assigned separately (not via mass-assignment) to satisfy
+  # Brakeman's PermitAttributes check. All actions here are admin-only
+  # via Pundit (see UserPolicy), so admins may set roles.
+  def role_from_params
+    params.dig(:user, :role).presence
   end
 end

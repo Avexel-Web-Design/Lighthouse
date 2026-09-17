@@ -271,10 +271,13 @@ class ScoutingEntriesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show includes scout next match for live entries" do
-    get scouting_entry_path(scouting_entries(:entry_qm2_254))
+    # Travel to during the event so upcoming matches exist for "next match"
+    travel_to Date.new(2026, 4, 15) do
+      get scouting_entry_path(scouting_entries(:entry_qm1_254))
 
-    assert_response :success
-    assert_select "a", text: "Scout Next Match"
+      assert_response :success
+      assert_select "a", text: "Scout Next Match"
+    end
   end
 
   test "admin can approve flagged entry" do
