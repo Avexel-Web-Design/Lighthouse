@@ -145,6 +145,7 @@ jobs:
           TBA_API_KEY: test-dummy-key
           VAPID_PUBLIC_KEY: test-dummy-public-key
           VAPID_PRIVATE_KEY: test-dummy-private-key
+          CHROME_NO_SANDBOX: "1"
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test:system
