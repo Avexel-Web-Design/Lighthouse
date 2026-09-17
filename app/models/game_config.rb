@@ -1,6 +1,7 @@
 class GameConfig < ApplicationRecord
-  # Validations
+  # Validations (year mirrors the DB UNIQUE index)
   validates :year, presence: true
+  validates :year, uniqueness: true
   validates :game_name, presence: true
 
   # Scopes

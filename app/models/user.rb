@@ -4,6 +4,9 @@ class User < ApplicationRecord
   devise :database_authenticatable
 
   enum :role, { scout: 0, analyst: 1, admin: 2 }
+  # NOTE: roles are scout < analyst < admin. There is no lead/owner role: the
+  # Membership-based roles were removed, "owner" in entry policies means the
+  # record's author, and the "lead_user" fixture is an analyst.
 
   # Associations
   has_many :scouting_entries, dependent: :destroy
@@ -48,9 +51,11 @@ class User < ApplicationRecord
 
   private
 
+  # Only fills in blanks: a manually set username/email is never overwritten,
+  # so renaming a user later does not silently change their login.
   def set_username_and_email
-    self.username = full_name if first_name.present? && last_name.present?
-    self.email = "#{username.parameterize}@lighthouse.local" if username.present? && email.blank?
+    self.username = full_name if username.blank? && first_name.present? && last_name.present?
+    self.email = "#{username.parameterize}@lighthouse.local" if email.blank? && username.present?
   end
 
   def generate_api_token

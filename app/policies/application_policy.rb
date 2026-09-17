@@ -48,10 +48,6 @@ class ApplicationPolicy
     user.admin? || user.analyst? || user.scout?
   end
 
-  def admin?
-    user.admin?
-  end
-
   class Scope
     attr_reader :user, :scope
 
@@ -76,10 +72,6 @@ class ApplicationPolicy
 
     def scout?
       user.admin? || user.analyst? || user.scout?
-    end
-
-    def admin?
-      user.admin?
     end
   end
 end

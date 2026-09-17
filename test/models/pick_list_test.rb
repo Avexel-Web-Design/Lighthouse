@@ -7,6 +7,29 @@ class PickListTest < ActiveSupport::TestCase
     assert pick_lists(:championship_picks).valid?
   end
 
+  test "invalid entries stay invalid across validation attempts" do
+    pick_list = pick_lists(:championship_picks)
+    pick_list.entries = [ frc_teams(:team_6328).id ]
+
+    2.times { assert_not pick_list.valid? }
+    assert_equal [ frc_teams(:team_6328).id ], pick_list.entries
+    assert_not pick_list.save
+  end
+
+  test "ordered team ids reflect in place edits reloads and event changes" do
+    pick_list = pick_lists(:championship_picks)
+    pick_list.entries = [ frc_teams(:team_254).id ]
+    assert_equal [ frc_teams(:team_254).id ], pick_list.ordered_team_ids
+    pick_list.entries << frc_teams(:team_1678).id
+    assert_equal [ frc_teams(:team_254).id, frc_teams(:team_1678).id ], pick_list.ordered_team_ids
+    pick_list.save!
+    PickList.where(id: pick_list.id).update_all(entries: [ frc_teams(:team_118).id ])
+    assert_equal [ frc_teams(:team_118).id ], pick_list.reload.ordered_team_ids
+    pick_list.event = Event.create!(name: "Empty event", year: 2026)
+    assert_empty pick_list.ordered_team_ids
+    assert_not pick_list.valid?
+  end
+
   test "requires name" do
     pick_list = pick_lists(:championship_picks)
     pick_list.name = nil
