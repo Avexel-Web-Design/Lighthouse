@@ -76,7 +76,9 @@ class PickListTest < ActiveSupport::TestCase
       user: users(:admin_user)
     )
 
-    assert_not pick_list.valid?
+    2.times { assert_not pick_list.valid? }
+    assert_equal [ frc_teams(:team_6328).id ], pick_list.entries
+    assert_not pick_list.save
     assert_includes pick_list.errors[:entries], "contain teams that are not part of the selected event"
   end
 end

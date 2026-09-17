@@ -25,18 +25,21 @@ class PickList < ApplicationRecord
   private
 
   def normalize_entries
-    self.entries = ordered_team_ids
+    resolved = resolve_entry_inputs
+    self.entries = resolved.compact.uniq unless resolved.include?(nil)
   end
 
   def entries_belong_to_event
-    ordered = ordered_team_ids
-    return if ordered.empty? || event.blank?
-
-    ids_set, _number_to_id = team_lookup_maps
-    invalid_ids = ordered.reject { |id| ids_set.include?(id) }
-    return if invalid_ids.empty?
+    return if event.blank? || !resolve_entry_inputs.include?(nil)
 
     errors.add(:entries, "contain teams that are not part of the selected event")
+  end
+
+  def resolve_entry_inputs
+    raw = Array(entries).reject(&:blank?)
+    ids_set, number_to_id = team_lookup_maps
+    scalar_mode = scalar_entry_mode(raw, ids_set, number_to_id)
+    raw.map { |entry| extract_team_id(entry, scalar_mode: scalar_mode, ids_set: ids_set, number_to_id: number_to_id) }
   end
 
   # Single batched lookup for all event teams: Set of ids + team_number => id.
