@@ -52,10 +52,11 @@ class TbaClientTest < ActiveSupport::TestCase
 
   test "returns nil without hitting the network when unconfigured" do
     ENV.delete("TBA_API_KEY")
-    client = TbaClient.new(api_key: nil)
+    connection = stub_connection(FakeResponse.new(200, { "name" => "Unexpected response" }))
 
-    assert_nil client.event("2026cmp")
-    assert_nil client.event_matches("2026cmp")
+    assert_nil @client.event("2026cmp")
+    assert_nil @client.event_matches("2026cmp")
+    assert_empty connection.requested_urls
   end
 
   test "event returns the response body on success" do
@@ -98,6 +99,53 @@ class TbaClientTest < ActiveSupport::TestCase
     stub_connection(error: Faraday::ConnectionFailed.new("connection refused"))
 
     assert_nil @client.event("2026cmp")
+  end
+
+  test "blank API keys are not configured" do
+    ENV["TBA_API_KEY"] = " "
+
+    assert_not TbaClient.configured?
+  end
+
+  test "connection sends the configured key and parses JSON using an explicit adapter" do
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.get("/api/v3/event/2026cmp", { "X-TBA-Auth-Key" => "test-key" }) do
+        [ 200, { "Content-Type" => "application/json" }, '{"name":"Championship"}' ]
+      end
+    end
+    @client.instance_variable_get(:@conn).adapter :test, stubs
+
+    assert_equal({ "name" => "Championship" }, @client.event("2026cmp"))
+    stubs.verify_stubbed_calls
+  end
+
+  test "offline default adapter accepts caller supplied stubs" do
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.get("/custom") { [ 200, {}, "custom response" ] }
+    end
+    connection = Faraday.new do |builder|
+      builder.adapter Faraday.default_adapter, stubs
+    end
+
+    assert_equal "custom response", connection.get("/custom").body
+    stubs.verify_stubbed_calls
+  end
+
+  test "offline default adapter accepts caller supplied stub blocks" do
+    connection = Faraday.new do |builder|
+      builder.adapter Faraday.default_adapter do |stub|
+        stub.get("/custom") { [ 200, {}, "block response" ] }
+      end
+    end
+
+    assert_equal "block response", connection.get("/custom").body
+  end
+
+  test "offline default adapter returns failure for unstubbed external requests" do
+    connection = Faraday.new(url: TbaClient::BASE_URL)
+
+    assert_equal 503, connection.get("/event/2026cmp").status
+    assert_equal 503, connection.post("/event/2026cmp").status
   end
 
   private

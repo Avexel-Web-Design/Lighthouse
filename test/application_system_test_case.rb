@@ -11,14 +11,18 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   end
 
   setup do
-    Capybara.current_session.driver.browser.execute_cdp("Network.setBypassServiceWorker", bypass: true)
+    @system_driver = Capybara.current_session.driver
+    @system_driver.browser.execute_cdp("Network.setBypassServiceWorker", bypass: true)
   rescue Selenium::WebDriver::Error::NoSuchDriverError
+    Capybara.current_driver = :rack_test
+    raise if ENV["CI"].present?
+
     skip "Chrome/Chromedriver unavailable; install them to run system tests"
   end
 
   teardown do
     Warden.test_reset!
-    Capybara.current_session.driver.quit
+    @system_driver&.quit
   end
 
   private

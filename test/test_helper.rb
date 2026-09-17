@@ -3,10 +3,14 @@ require_relative "../config/environment"
 require "rails/test_help"
 
 class OfflineTestAdapter < Faraday::Adapter::Test
-  def initialize(app, **options)
-    super(app, nil, **options) do |stub|
-      stub.get(/.*/) { [ 503, { "Content-Type" => "application/json" }, '{"error":"External requests disabled in tests"}' ] }
-      stub.post(/.*/) { [ 503, { "Content-Type" => "application/json" }, '{"error":"External requests disabled in tests"}' ] }
+  def initialize(app, stubs = nil, &block)
+    if stubs || block
+      super
+    else
+      super(app) do |stub|
+        stub.get(/.*/) { [ 503, { "Content-Type" => "application/json" }, '{"error":"External requests disabled in tests"}' ] }
+        stub.post(/.*/) { [ 503, { "Content-Type" => "application/json" }, '{"error":"External requests disabled in tests"}' ] }
+      end
     end
   end
 end

@@ -4,17 +4,16 @@ class ScoutingAssignmentNotificationJobTest < ActiveJob::TestCase
   setup do
     @event = events(:championship)
     @assignment = scouting_assignments(:admin_qm2)
+    @original_vapid = ENV.to_h.slice("VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY")
+    matches(:qm2).update!(red_score: nil, blue_score: nil)
+    matches(:qm3).update!(red_score: nil, blue_score: nil)
+    matches(:qm4).update!(red_score: nil, blue_score: nil)
   end
 
   test "marks 1-match-ahead notification timestamp for shift start" do
     # Remove Q1 assignment so Q2 becomes a shift start (not mid-shift)
     scouting_assignments(:admin_qm1).destroy!
 
-    # Clear all later scores so the latest completed match is Q1 — Q2 is then
-    # exactly one match ahead for the "now" reference.
-    matches(:qm2).update!(red_score: nil, blue_score: nil)
-    matches(:qm3).update!(red_score: nil, blue_score: nil)
-    matches(:qm4).update!(red_score: nil, blue_score: nil)
     @assignment.update!(notified_1_at: nil)
     ENV["VAPID_PUBLIC_KEY"] = "public"
     ENV["VAPID_PRIVATE_KEY"] = "private"
@@ -27,8 +26,8 @@ class ScoutingAssignmentNotificationJobTest < ActiveJob::TestCase
     assert_equal 1, captured.length
     assert @assignment.reload.notified_1_at.present?
   ensure
-    ENV.delete("VAPID_PUBLIC_KEY")
-    ENV.delete("VAPID_PRIVATE_KEY")
+    ENV["VAPID_PUBLIC_KEY"] = @original_vapid["VAPID_PUBLIC_KEY"]
+    ENV["VAPID_PRIVATE_KEY"] = @original_vapid["VAPID_PRIVATE_KEY"]
   end
 
   test "skips notification for mid-shift assignment" do
@@ -46,8 +45,8 @@ class ScoutingAssignmentNotificationJobTest < ActiveJob::TestCase
     assert_equal 0, captured.length
     assert_nil @assignment.reload.notified_1_at
   ensure
-    ENV.delete("VAPID_PUBLIC_KEY")
-    ENV.delete("VAPID_PRIVATE_KEY")
+    ENV["VAPID_PUBLIC_KEY"] = @original_vapid["VAPID_PUBLIC_KEY"]
+    ENV["VAPID_PRIVATE_KEY"] = @original_vapid["VAPID_PRIVATE_KEY"]
   end
 
   test "does not mark notification when delivery fails" do
@@ -57,14 +56,16 @@ class ScoutingAssignmentNotificationJobTest < ActiveJob::TestCase
     ENV["VAPID_PUBLIC_KEY"] = "public"
     ENV["VAPID_PRIVATE_KEY"] = "private"
 
-    with_stubbed_webpush_error do
+    captured = []
+    with_stubbed_webpush_error(captured) do
       ScoutingAssignmentNotificationJob.perform_now(@event.id)
     end
 
+    assert_equal 1, captured.length
     assert_nil @assignment.reload.notified_1_at
   ensure
-    ENV.delete("VAPID_PUBLIC_KEY")
-    ENV.delete("VAPID_PRIVATE_KEY")
+    ENV["VAPID_PUBLIC_KEY"] = @original_vapid["VAPID_PUBLIC_KEY"]
+    ENV["VAPID_PRIVATE_KEY"] = @original_vapid["VAPID_PRIVATE_KEY"]
   end
 
   private
@@ -83,10 +84,11 @@ class ScoutingAssignmentNotificationJobTest < ActiveJob::TestCase
     singleton.send(:remove_method, :__original_payload_send_for_test)
   end
 
-  def with_stubbed_webpush_error
+  def with_stubbed_webpush_error(captured)
     singleton = class << Webpush; self; end
     singleton.send(:alias_method, :__original_payload_send_for_test, :payload_send)
-    singleton.send(:define_method, :payload_send) do |**_kwargs|
+    singleton.send(:define_method, :payload_send) do |**kwargs|
+      captured << kwargs
       raise StandardError, "simulated failure"
     end
 
