@@ -29,18 +29,39 @@ class ScoutingAssignmentNotificationJob < ApplicationJob
       next unless THRESHOLDS.include?(ahead)
 
       notified_column = "notified_#{ahead}_at"
+      next unless %w[notified_5_at notified_2_at notified_1_at].include?(notified_column)
       next if assignment.public_send(notified_column).present?
 
       ScoutingAssignment.transaction(requires_new: true) do
-        claimed = ScoutingAssignment.where(id: assignment.id, notified_column => nil)
-                                    .update_all(notified_column => Time.current)
+        # Use static column names (not dynamic hashes) so Brakeman's SQL
+        # injection check can verify safety. `ahead` is allowlisted above.
+        claimed = case ahead
+        when 5
+                    ScoutingAssignment.where(id: assignment.id, notified_5_at: nil)
+                                      .update_all(notified_5_at: Time.current)
+        when 2
+                    ScoutingAssignment.where(id: assignment.id, notified_2_at: nil)
+                                      .update_all(notified_2_at: Time.current)
+        else
+                    ScoutingAssignment.where(id: assignment.id, notified_1_at: nil)
+                                      .update_all(notified_1_at: Time.current)
+        end
         next unless claimed == 1
 
         delivered = PushNotificationService.new(assignment.user).send_assignment_notification!(
           assignment: assignment,
           matches_ahead: ahead
         )
-        ScoutingAssignment.where(id: assignment.id).update_all(notified_column => nil) unless delivered
+        if !delivered
+          case ahead
+          when 5
+            ScoutingAssignment.where(id: assignment.id).update_all(notified_5_at: nil)
+          when 2
+            ScoutingAssignment.where(id: assignment.id).update_all(notified_2_at: nil)
+          else
+            ScoutingAssignment.where(id: assignment.id).update_all(notified_1_at: nil)
+          end
+        end
       end
     end
   end
