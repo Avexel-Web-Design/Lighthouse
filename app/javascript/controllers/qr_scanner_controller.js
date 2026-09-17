@@ -40,6 +40,9 @@ export default class extends Controller {
     // so disconnect() never fires a tick after teardown.
     this._lastScanAt = 0
     this._resumeTimeout = null
+    this.scanningValue = false
+    if (this.hasStartBtnTarget) this.startBtnTarget.classList.remove("hidden")
+    this.previewTarget.classList.add("hidden")
 
     if (!cameraSupported()) {
       this.statusTarget.textContent = "Camera access is not supported on this device or browser."
@@ -61,7 +64,7 @@ export default class extends Controller {
   }
 
   async start() {
-    if (this.scanningValue || this._starting) return
+    if (this.scanningValue || this._starting || this.stream) return
     this._starting = true
     const generation = this._generation
 

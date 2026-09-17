@@ -62,6 +62,7 @@ export function updateSelectionCards(root, cardSelector, isSelected, unselectedC
  * Returns true when the event was handled.
  */
 export function moveRadioSelection(event, cards, currentIndex) {
+  if (!cards.length || currentIndex < 0) return false
   const { key } = event
   let nextIndex = null
 
@@ -93,6 +94,7 @@ export function switchPillTab(root, tabButtons, panels, tab) {
     btn.classList.toggle("shadow-sm", isActive)
     btn.classList.toggle("text-gray-400", !isActive)
     btn.classList.toggle("hover:text-gray-300", !isActive)
+    btn.classList.remove("hover:bg-gray-800/70")
     btn.classList.toggle("hover:bg-gray-700/50", !isActive)
   })
 

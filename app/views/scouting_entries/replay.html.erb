@@ -243,7 +243,7 @@
                   <% %w[auton teleop].each_with_index do |phase, index| %>
                     <button type="button"
                             class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 <%= index.zero? ? 'bg-orange-500/15 text-orange-400 shadow-sm' : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/70' %>"
-                            data-action="click->replay-scouting#switchTab"
+                            data-action="click->replay-scouting#switchTab keydown->replay-scouting#navigateTab"
                             data-tab-button
                             data-tab="<%= phase %>"
                             role="tab"

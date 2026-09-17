@@ -108,6 +108,11 @@ export default class extends Controller {
     this.#stopCounterHold()
   }
 
+  navigateTab(event) {
+    const buttons = [...this.element.querySelectorAll("[data-tab-button]")]
+    moveRadioSelection(event, buttons, buttons.indexOf(event.currentTarget))
+  }
+
   switchTab(event) {
     const tab = event.currentTarget.dataset.tab
     const buttons = [...this.element.querySelectorAll("[data-tab-button]")]

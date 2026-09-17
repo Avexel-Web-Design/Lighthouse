@@ -54,7 +54,7 @@ export function showToast(message, { type = "info", container = null, duration =
   const style = TOAST_STYLES[type] || TOAST_STYLES.info
 
   const toast = document.createElement("div")
-  toast.className = `toast-card ${style}`
+  toast.className = `toast-card toast-hidden ${style}`
   // Errors interrupt; info/success are polite so screen readers announce them.
   toast.setAttribute("role", type === "error" ? "alert" : "status")
   toast.setAttribute("aria-live", type === "error" ? "assertive" : "polite")
@@ -69,11 +69,13 @@ export function showToast(message, { type = "info", container = null, duration =
   host.appendChild(toast)
 
   requestAnimationFrame(() => {
+    toast.classList.remove("toast-hidden")
     toast.classList.add("toast-visible")
   })
 
   window.setTimeout(() => {
     toast.classList.remove("toast-visible")
+    toast.classList.add("toast-hidden")
     window.setTimeout(() => toast.remove(), 250)
   }, duration)
 

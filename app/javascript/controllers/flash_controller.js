@@ -6,10 +6,12 @@ export default class extends Controller {
     // .toast-visible slides in. Works with Turbo Drive + Turbo Frames because
     // Stimulus reconnects on every frame render and dismiss() only removes
     // this element — never the surrounding turbo-frame.
+    this.element.classList.remove("toast-visible")
     this.element.classList.add("toast-card", "toast-hidden")
+    this._dismissing = false
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
+    this.animationId = requestAnimationFrame(() => {
+      this.animationId = requestAnimationFrame(() => {
         this.element.classList.remove("toast-hidden")
         this.element.classList.add("toast-visible")
       })
@@ -25,6 +27,8 @@ export default class extends Controller {
 
   disconnect() {
     clearTimeout(this.timeout)
+    clearTimeout(this.dismissTimeout)
+    cancelAnimationFrame(this.animationId)
     this.element.removeEventListener("mouseenter", this.#pause)
     this.element.removeEventListener("mouseleave", this.#resume)
     this.element.removeEventListener("focusin", this.#pause)
@@ -32,14 +36,17 @@ export default class extends Controller {
   }
 
   dismiss() {
+    if (this._dismissing) return
+    this._dismissing = true
     clearTimeout(this.timeout)
+    cancelAnimationFrame(this.animationId)
 
     this.element.classList.remove("toast-visible")
     this.element.classList.add("toast-hidden")
 
     // Keep the Turbo Frame in the DOM — only remove this flash node so a
     // surrounding <turbo-frame> stays usable for later stream updates.
-    setTimeout(() => this.element.remove(), 200)
+    this.dismissTimeout = setTimeout(() => this.element.remove(), 200)
   }
 
   #pause = () => {
@@ -47,6 +54,8 @@ export default class extends Controller {
   }
 
   #resume = () => {
+    if (this._dismissing) return
+    clearTimeout(this.timeout)
     this.timeout = setTimeout(() => this.dismiss(), 2000)
   }
 }
