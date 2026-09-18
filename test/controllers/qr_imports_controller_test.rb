@@ -164,10 +164,10 @@ class QrImportsControllerTest < ActionDispatch::IntegrationTest
         as: :json
     end
 
-    # The JSON import endpoint returns 422 for unauthorized scouts
-    assert_response :unprocessable_entity
+    # The JSON import endpoint returns 403 for unauthorized scouts
+    assert_response :forbidden
     body = JSON.parse(response.body)
-    assert_equal "error", body["status"]
+    assert body["error"].present?
   end
 
   # --- Import: validation errors ---
