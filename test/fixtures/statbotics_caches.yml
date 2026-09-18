@@ -1,0 +1,34 @@
+_fixture:
+  model_class: StatboticsCache
+
+statbotics_254_championship:
+  frc_team: team_254
+  event: championship
+  epa_mean: 42.5
+  epa_sd: 3.1
+  wins: 8
+  losses: 2
+  ties: 0
+  qual_wins: 7
+  qual_losses: 2
+  qual_rank: 3
+  qual_num_teams: 40
+  winrate: 0.8
+  data: {}
+  last_synced_at: "2026-04-15 10:00:00"
+
+statbotics_1678_championship:
+  frc_team: team_1678
+  event: championship
+  epa_mean: 38.2
+  epa_sd: 2.8
+  wins: 7
+  losses: 3
+  ties: 0
+  qual_wins: 6
+  qual_losses: 3
+  qual_rank: 5
+  qual_num_teams: 40
+  winrate: 0.7
+  data: {}
+  last_synced_at: "2026-04-15 10:00:00"

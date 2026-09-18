@@ -2,6 +2,21 @@ ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
 
+class OfflineTestAdapter < Faraday::Adapter::Test
+  def initialize(app, stubs = nil, &block)
+    if stubs || block
+      super
+    else
+      super(app) do |stub|
+        stub.get(/.*/) { [ 503, { "Content-Type" => "application/json" }, '{"error":"External requests disabled in tests"}' ] }
+        stub.post(/.*/) { [ 503, { "Content-Type" => "application/json" }, '{"error":"External requests disabled in tests"}' ] }
+      end
+    end
+  end
+end
+
+Faraday.default_adapter = OfflineTestAdapter
+
 # Ensure the team_event_summaries materialized view is populated in the test database.
 # structure.sql creates the view, but it may not be populated after db:test:prepare.
 def ensure_team_event_summaries_view!

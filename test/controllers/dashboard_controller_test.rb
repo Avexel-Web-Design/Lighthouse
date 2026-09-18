@@ -111,6 +111,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
   test "dashboard enqueues async auto-sync when TBA is configured" do
     select_event(@event)
+    original_api_key = ENV["TBA_API_KEY"]
     ENV["TBA_API_KEY"] = "test-key"
     clear_enqueued_jobs
 
@@ -119,6 +120,6 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     end
   ensure
     clear_enqueued_jobs
-    ENV.delete("TBA_API_KEY")
+    ENV["TBA_API_KEY"] = original_api_key
   end
 end
