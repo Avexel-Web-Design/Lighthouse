@@ -30,6 +30,12 @@ export default class extends Controller {
 
   static targets = ["cacheButton", "progressContainer", "progressBar", "progressText"]
 
+  // Shared across all prefetch instances on the page (dashboard + event page
+  // can each mount one): debounce concurrent auto-prefetches for the same
+  // event so N controllers trigger at most one manifest fetch + SW message.
+  static _debounceTimers = {}
+  static _inflight = {}
+
   connect() {
     this._caching = false
     this._manifestTruncated = false
@@ -46,7 +52,17 @@ export default class extends Controller {
     if (!navigator.onLine) return
     if (!this.eventIdValue || !this.manifestUrlValue) return
 
-    this.#checkAndPrefetch()
+    // Debounce: coalesce multiple connect()s (Turbo restores, multiple
+    // instances) into one check per event per 2s window.
+    const key = this.eventIdValue
+    if (this.constructor._debounceTimers[key]) {
+      clearTimeout(this.constructor._debounceTimers[key])
+    }
+    this.constructor._debounceTimers[key] = setTimeout(() => {
+      delete this.constructor._debounceTimers[key]
+      if (!this.element.isConnected) return
+      this.#checkAndPrefetch()
+    }, 500)
   }
 
   disconnect() {
@@ -83,6 +99,24 @@ export default class extends Controller {
   // --- Private ---
 
   async #checkAndPrefetch() {
+    // In-flight guard: if another instance already started a prefetch for
+    // this event, piggyback instead of fetching the manifest twice.
+    const key = this.eventIdValue
+    if (this.constructor._inflight[key]) {
+      try { await this.constructor._inflight[key] } catch { /* ignore */ }
+      return
+    }
+
+    const run = this.#checkAndPrefetchInner()
+    this.constructor._inflight[key] = run
+    try {
+      await run
+    } finally {
+      delete this.constructor._inflight[key]
+    }
+  }
+
+  async #checkAndPrefetchInner() {
     try {
       const db = await openDB()
       const tx = db.transaction(EVENT_DATA_STORE, "readonly")

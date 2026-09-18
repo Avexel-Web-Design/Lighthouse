@@ -85,7 +85,7 @@
       <button type="button" role="tab"
               id="tab-auton"
               class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 bg-orange-500/15 text-orange-400 shadow-sm"
-              data-action="click->scouting#switchTab"
+              data-action="click->scouting#switchTab keydown->scouting#navigateTab"
               data-tab-button
               data-tab="auton"
               aria-selected="true"
@@ -95,7 +95,7 @@
       <button type="button" role="tab"
               id="tab-teleop"
               class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-400 hover:text-gray-300 hover:bg-gray-700/50"
-              data-action="click->scouting#switchTab"
+              data-action="click->scouting#switchTab keydown->scouting#navigateTab"
               data-tab-button
               data-tab="teleop"
               aria-selected="false"
@@ -105,7 +105,7 @@
       <button type="button" role="tab"
               id="tab-endgame"
               class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-400 hover:text-gray-300 hover:bg-gray-700/50"
-              data-action="click->scouting#switchTab"
+              data-action="click->scouting#switchTab keydown->scouting#navigateTab"
               data-tab-button
               data-tab="endgame"
               aria-selected="false"
@@ -179,12 +179,17 @@
       <div class="mb-4"
            data-controller="field-map"
            data-field-map-strokes-value="<%= (scouting_entry.data&.dig('auton_path') || []).to_json %>">
-        <p class="text-xs text-gray-400 uppercase tracking-wider mb-2 font-medium">Auton Path</p>
+        <p class="text-xs text-gray-400 uppercase tracking-wider mb-2 font-medium" id="auton-path-label">Auton Path</p>
+        <p class="text-xs text-gray-400 mb-2" id="auton-path-help">Draw with a pointer. Keyboard: focus the canvas, use arrow keys to move the cursor, Space/Enter to start and finish a stroke, Escape to cancel, U to undo, C to clear.</p>
         <div class="relative rounded-lg overflow-hidden border border-gray-700 bg-gray-800 touch-none">
           <%= image_tag "field_2026.jpeg", class: "w-full block select-none pointer-events-none", alt: "Field map", data: { field_map_target: "image" } %>
-          <canvas class="absolute inset-0 w-full h-full cursor-crosshair"
+          <canvas class="absolute inset-0 w-full h-full cursor-crosshair focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+                  tabindex="0"
+                  role="application"
+                  aria-labelledby="auton-path-label"
+                  aria-describedby="auton-path-help"
                   data-field-map-target="canvas"
-                  data-action="pointerdown->field-map#startStroke pointermove->field-map#continueStroke pointerup->field-map#endStroke pointerleave->field-map#endStroke"></canvas>
+                  data-action="pointerdown->field-map#startStroke pointermove->field-map#continueStroke pointerup->field-map#endStroke pointerleave->field-map#endStroke keydown->field-map#handleKey"></canvas>
         </div>
         <div class="flex gap-2 mt-2">
           <button type="button"
@@ -205,7 +210,7 @@
 
       <%# Auton Climb Toggle %>
       <div class="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3 cursor-pointer transition-all duration-150 hover:bg-gray-700/50"
-           data-action="click->scouting#toggleAutonClimb"
+           data-action="click->scouting#toggleAutonClimb keydown->scouting#toggleAutonClimbFromKey"
            data-scouting-target="autonClimb"
            role="switch"
            aria-checked="<%= scouting_entry.data&.dig('auton_climb') == true ? 'true' : 'false' %>"
@@ -299,55 +304,58 @@
       </div>
 
       <%# Climb Level Selector - Large Tappable Cards %>
-      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2 font-medium">Climb Level</p>
-      <div class="grid grid-cols-4 gap-2 mb-4" role="radiogroup" aria-label="Select climb level">
+      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2 font-medium" id="climb-label">Climb Level</p>
+      <div class="grid grid-cols-4 gap-2 mb-4" role="radiogroup" aria-labelledby="climb-label">
         <% [["None", 0], ["L1", 10], ["L2", 20], ["L3", 30]].each do |level, points| %>
           <% is_selected = level == (scouting_entry.data&.dig('endgame_climb') || 'None') %>
           <button type="button"
                   class="py-4 rounded-xl border-2 text-center transition-all duration-200 active:scale-95 select-none
                          <%= is_selected ? 'ring-2 ring-orange-400 bg-orange-500/15 border-orange-500 shadow-lg shadow-orange-500/10 scale-[1.02]' : 'bg-gray-800 border-gray-700 hover:border-gray-600 hover:bg-gray-700/50' %>"
-                  data-action="click->scouting#selectClimb"
+                  data-action="click->scouting#selectClimb keydown->scouting#navigateRadio"
                   data-climb-card
                   data-level="<%= level %>"
                   role="radio"
                   aria-checked="<%= is_selected %>"
+                  tabindex="<%= is_selected ? 0 : -1 %>"
                   aria-label="<%= level %> climb - <%= points %> points">
             <p class="text-lg font-bold <%= is_selected ? 'text-orange-400' : 'text-gray-300' %>"><%= level %></p>
-            <p class="text-xs text-gray-500"><%= points %> pts</p>
+            <p class="text-xs text-gray-400"><%= points %> pts</p>
           </button>
         <% end %>
       </div>
 
       <%# Defence Rating Selector %>
-      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2 font-medium">Defence Rating</p>
-      <div class="grid grid-cols-6 gap-2 mb-4" role="radiogroup" aria-label="Rate defence quality">
+      <p class="text-xs text-gray-400 uppercase tracking-wider mb-2 font-medium" id="defence-label">Defence Rating</p>
+      <div class="grid grid-cols-6 gap-2 mb-4" role="radiogroup" aria-labelledby="defence-label">
         <% defence_labels = { 0 => "No Defence", 1 => "Weak", 2 => "Below Avg", 3 => "Average", 4 => "Strong", 5 => "Dominant" } %>
         <% current_defense = (scouting_entry.data&.dig("defense_rating") || 0).to_i %>
         <button type="button"
                 class="py-3 rounded-xl border-2 text-center transition-all duration-200 active:scale-95 select-none
                        <%= current_defense == 0 ? 'ring-2 ring-orange-400 bg-orange-500/15 border-orange-500 shadow-lg shadow-orange-500/10 scale-[1.02]' : 'bg-gray-800 border-gray-700 hover:border-gray-600 hover:bg-gray-700/50' %>"
-                data-action="click->scouting#selectDefense"
+                data-action="click->scouting#selectDefense keydown->scouting#navigateRadio"
                 data-defense-card
                 data-rating="0"
                 role="radio"
                 aria-checked="<%= current_defense == 0 %>"
+                tabindex="<%= current_defense == 0 ? 0 : -1 %>"
                 aria-label="No defense played">
           <p class="text-lg font-bold <%= current_defense == 0 ? 'text-orange-400' : 'text-gray-300' %>">&#x2715;</p>
-          <p class="text-[10px] text-gray-500 leading-tight">No Defence</p>
+          <p class="text-[10px] text-gray-400 leading-tight">No Defence</p>
         </button>
         <% (1..5).each do |rating| %>
           <% is_selected = rating == current_defense %>
           <button type="button"
                   class="py-3 rounded-xl border-2 text-center transition-all duration-200 active:scale-95 select-none
                          <%= is_selected ? 'ring-2 ring-orange-400 bg-orange-500/15 border-orange-500 shadow-lg shadow-orange-500/10 scale-[1.02]' : 'bg-gray-800 border-gray-700 hover:border-gray-600 hover:bg-gray-700/50' %>"
-                  data-action="click->scouting#selectDefense"
+                  data-action="click->scouting#selectDefense keydown->scouting#navigateRadio"
                   data-defense-card
                   data-rating="<%= rating %>"
                   role="radio"
                   aria-checked="<%= is_selected %>"
+                  tabindex="<%= is_selected ? 0 : -1 %>"
                    aria-label="<%= defence_labels[rating] %> defence - <%= rating %> out of 5">
             <p class="text-lg font-bold <%= is_selected ? 'text-orange-400' : 'text-gray-300' %>"><%= rating %></p>
-            <p class="text-[10px] text-gray-500 leading-tight"><%= defence_labels[rating] %></p>
+            <p class="text-[10px] text-gray-400 leading-tight"><%= defence_labels[rating] %></p>
           </button>
         <% end %>
       </div>
@@ -362,6 +370,6 @@
   <%# ===== SUBMIT ===== %>
   <div class="mt-4 pb-4">
     <%= f.submit scouting_entry.persisted? ? "Update Entry" : "Submit Entry",
-                 class: "w-full py-4 text-lg font-bold bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950" %>
+                 class: "btn-submit" %>
   </div>
 <% end %>

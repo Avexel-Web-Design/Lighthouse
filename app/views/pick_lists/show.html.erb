@@ -14,14 +14,14 @@
     </div>
   </div>
 
-  <p class="text-sm text-gray-500 mb-4">By <%= @pick_list.user.full_name %> &middot; <%= @pick_list.team_count %> teams &middot; Updated <%= time_ago_in_words(@pick_list.updated_at) %> ago</p>
+  <p class="text-sm text-gray-400 mb-4">By <%= @pick_list.user.full_name %> &middot; <%= @pick_list.team_count %> teams &middot; Updated <%= time_ago_in_words(@pick_list.updated_at) %> ago</p>
 
-  <%# Tier Legend %>
-  <div class="flex flex-wrap items-center gap-4 mb-4 text-xs text-gray-500">
-    <span class="flex items-center gap-1"><span class="w-2 h-2 bg-amber-400 rounded-full"></span> Tier 1 (Top 8)</span>
-    <span class="flex items-center gap-1"><span class="w-2 h-2 bg-orange-400 rounded-full"></span> Tier 2 (9-16)</span>
-    <span class="flex items-center gap-1"><span class="w-2 h-2 bg-blue-400 rounded-full"></span> Tier 3 (17-24)</span>
-    <span class="flex items-center gap-1"><span class="w-2 h-2 bg-gray-500 rounded-full"></span> Tier 4 (25+)</span>
+  <%# Tier Legend — text labels carry the meaning (not color-only); dots are decorative %>
+  <div class="flex flex-wrap items-center gap-4 mb-4 text-xs text-gray-400" aria-label="Pick list tier legend">
+    <span class="flex items-center gap-1"><span class="w-2 h-2 bg-amber-400 rounded-full" aria-hidden="true"></span> Tier 1 (Top 8)</span>
+    <span class="flex items-center gap-1"><span class="w-2 h-2 bg-orange-400 rounded-full" aria-hidden="true"></span> Tier 2 (9-16)</span>
+    <span class="flex items-center gap-1"><span class="w-2 h-2 bg-blue-400 rounded-full" aria-hidden="true"></span> Tier 3 (17-24)</span>
+    <span class="flex items-center gap-1"><span class="w-2 h-2 bg-gray-400 rounded-full" aria-hidden="true"></span> Tier 4 (25+)</span>
   </div>
 
   <div data-controller="sortable pick-list-board"
@@ -30,7 +30,7 @@
     <div class="mb-4 rounded-xl border border-gray-800 bg-gray-950/50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 class="text-sm font-semibold text-white">Draft Board Tools</h2>
-        <p class="text-xs text-gray-500 mt-1">Drag rows, use the arrow buttons, or sort by stats. Mark teams as picked to gray them out locally.</p>
+        <p class="text-xs text-gray-400 mt-1">Drag rows, use the arrow buttons, or sort by stats. Mark teams as picked to gray them out locally.</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <select class="input-field text-sm min-w-48"
@@ -85,7 +85,7 @@
                 role="listitem"
                 aria-label="Rank <%= idx + 1 %>: Team <%= team.team_number %> - <%= team.nickname %>">
             <%# Drag handle %>
-            <div class="text-gray-600 shrink-0 touch-none" aria-label="Drag to reorder" data-sortable-handle>
+            <div class="text-gray-400 shrink-0 touch-none" aria-label="Drag to reorder" data-sortable-handle>
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
               </svg>
@@ -109,19 +109,19 @@
               </div>
               <% if summary %>
                 <div class="flex items-center gap-3 mt-0.5">
-                  <span class="text-xs text-gray-500"><%= avg_points %> avg pts</span>
-                  <span class="text-xs text-gray-600">&middot;</span>
-                  <span class="text-xs text-gray-500"><%= avg_accuracy %>% acc</span>
-                  <span class="text-xs text-gray-600">&middot;</span>
+                  <span class="text-xs text-gray-400"><%= avg_points %> avg pts</span>
+                  <span class="text-xs text-gray-400">&middot;</span>
+                  <span class="text-xs text-gray-400"><%= avg_accuracy %>% acc</span>
+                  <span class="text-xs text-gray-400">&middot;</span>
                   <% if avg_defense.present? %>
                     <span class="text-xs text-blue-400"><%= avg_defense.to_f.round(1) %>/5 def</span>
-                    <span class="text-xs text-gray-600">&middot;</span>
+                    <span class="text-xs text-gray-400">&middot;</span>
                   <% end %>
-                  <span class="text-xs text-gray-500"><%= matches_scouted %> matches</span>
+                  <span class="text-xs text-gray-400"><%= matches_scouted %> matches</span>
                 </div>
               <% end %>
 
-              <div class="flex flex-wrap items-center gap-3 mt-1 text-xs text-gray-600">
+              <div class="flex flex-wrap items-center gap-3 mt-1 text-xs text-gray-400">
                 <% if recent_entry %>
                   <span>Latest <%= recent_match || "entry" %></span>
                   <span><%= recent_points %> pts</span>
@@ -135,7 +135,7 @@
             <% if summary %>
               <div class="text-right shrink-0 hidden sm:block">
                 <p class="text-sm font-mono font-bold text-white"><%= avg_points %></p>
-                <p class="text-[10px] text-gray-600">avg pts</p>
+                <p class="text-[10px] text-gray-400">avg pts</p>
               </div>
             <% end %>
             <div class="flex items-center gap-2 shrink-0">
@@ -158,7 +158,7 @@
               </button>
             </div>
             <%# View link %>
-            <%= link_to team_path(team), class: "text-gray-600 hover:text-gray-400 transition-colors duration-150 shrink-0 p-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500", "aria-label": "View team #{team.team_number}" do %>
+            <%= link_to team_path(team), class: "text-gray-400 hover:text-gray-400 transition-colors duration-150 shrink-0 p-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500", "aria-label": "View team #{team.team_number}" do %>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
@@ -170,8 +170,8 @@
           <svg class="w-10 h-10 text-gray-700 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
           </svg>
-          <p class="text-gray-500 text-sm font-medium mb-1">No teams in this pick list yet</p>
-          <p class="text-gray-600 text-xs">Edit the pick list to add teams.</p>
+          <p class="text-gray-400 text-sm font-medium mb-1">No teams in this pick list yet</p>
+          <p class="text-gray-400 text-xs">Edit the pick list to add teams.</p>
         </div>
       <% end %>
     </div>

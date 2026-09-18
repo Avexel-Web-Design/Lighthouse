@@ -34,7 +34,7 @@
         <span class="badge-orange text-sm py-1.5 px-3">Currently Active</span>
       <% end %>
       <% if current_user.admin? %>
-        <%= button_to "Sync from TBA", sync_event_path(@event), method: :post, class: "inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950", form: { data: { controller: "offline-guard", action: "submit->offline-guard#check" } } %>
+        <%= button_to "Sync from TBA", sync_event_path(@event), method: :post, class: "btn-primary text-sm", form: { data: { controller: "offline-guard", action: "submit->offline-guard#check" } } %>
         <%= link_to "Edit", edit_event_path(@event), class: "btn-secondary text-sm" %>
         <%= button_to "Delete", event_path(@event), method: :delete, data: { turbo_confirm: "Are you sure you want to delete this event? All associated matches, scouting entries, and other data will be permanently removed." }, class: "btn-danger text-sm", form: { data: { controller: "offline-guard", action: "submit->offline-guard#check" } } %>
       <% end %>
@@ -56,7 +56,7 @@
                class="bg-cyan-500 h-1.5 rounded-full transition-all duration-300"
                style="width: 0%"></div>
         </div>
-        <span data-prefetch-target="progressText" class="text-[10px] text-gray-500 mt-1 block text-center"></span>
+        <span data-prefetch-target="progressText" class="text-[10px] text-gray-400 mt-1 block text-center"></span>
       </div>
     </div>
   </div>
@@ -83,7 +83,7 @@
           <svg class="w-10 h-10 text-gray-700 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          <p class="text-gray-500 text-sm">No teams synced yet. Sync from TBA to import teams.</p>
+          <p class="text-gray-400 text-sm">No teams synced yet. Sync from TBA to import teams.</p>
         </div>
       <% end %>
     </div>
@@ -97,6 +97,7 @@
     <% if @matches.any? %>
       <div class="overflow-x-auto">
         <table class="data-table">
+          <caption class="sr-only">Qualification matches at <%= @event.name %> with red and blue alliances</caption>
           <thead>
             <tr class="border-b border-gray-800">
               <th scope="col" class="text-left">Match</th>
@@ -134,7 +135,7 @@
         <svg class="w-10 h-10 text-gray-700 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-        <p class="text-gray-500 text-sm">No matches synced yet. Sync from TBA to import match schedule.</p>
+        <p class="text-gray-400 text-sm">No matches synced yet. Sync from TBA to import match schedule.</p>
       </div>
     <% end %>
   </div>

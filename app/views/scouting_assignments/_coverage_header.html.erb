@@ -1,6 +1,10 @@
 <div id="coverage_<%= match.id %>">
   <div class="text-white font-semibold"><%= match.display_name %></div>
-  <div class="text-[10px] mt-0.5 px-1.5 py-0.5 rounded-full inline-block border <%= timeline_coverage_classes(count) %>">
+  <div class="text-[10px] mt-0.5 px-1.5 py-0.5 rounded-full inline-block border <%= timeline_coverage_classes(count) %>"
+       role="status"
+       aria-label="Coverage for <%= match.display_name %>: <%= count %> of 3 scouts assigned<%= count < 3 ? ' — under-covered' : count > 3 ? ' — over-covered' : ' — fully covered' %>"
+       title="<%= count %> of 3 scouts assigned">
     <%= coverage_label(count) %>
+    <span class="sr-only"> scouts assigned (target 3)</span>
   </div>
 </div>

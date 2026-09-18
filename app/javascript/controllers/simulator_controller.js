@@ -2,16 +2,19 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["redScore", "blueScore", "redWin", "blueWin"]
+  static values = {
+    redScore: Number,
+    blueScore: Number
+  }
 
   connect() {
     this.updateResult()
   }
 
   updateResult() {
-    if (!this.hasRedScoreTarget || !this.hasBlueScoreTarget) return
-
-    const red = parseFloat(this.redScoreTarget.textContent) || 0
-    const blue = parseFloat(this.blueScoreTarget.textContent) || 0
+    if (!this.hasRedScoreValue || !this.hasBlueScoreValue) return
+    const red = this.redScoreValue
+    const blue = this.blueScoreValue
 
     if (this.hasRedWinTarget && this.hasBlueWinTarget) {
       if (red > blue) {

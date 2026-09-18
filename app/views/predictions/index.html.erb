@@ -22,12 +22,13 @@
 <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
+      <caption class="sr-only">Match predictions with red and blue alliances and win probabilities</caption>
       <thead>
-        <tr class="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-          <th class="px-4 py-3 text-left">Match</th>
-          <th class="px-4 py-3 text-center">Red Alliance</th>
-          <th class="px-4 py-3 text-center">Prediction</th>
-          <th class="px-4 py-3 text-center">Blue Alliance</th>
+        <tr class="text-gray-400 text-xs uppercase tracking-wider border-b border-gray-800">
+          <th scope="col" class="px-4 py-3 text-left">Match</th>
+          <th scope="col" class="px-4 py-3 text-center">Red Alliance</th>
+          <th scope="col" class="px-4 py-3 text-center">Prediction</th>
+          <th scope="col" class="px-4 py-3 text-center">Blue Alliance</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-800/50">
@@ -40,7 +41,7 @@
               <%= link_to prediction_path(match), class: "font-semibold text-white hover:text-orange-400 transition" do %>
                 <%= match.display_name %>
               <% end %>
-              <p class="text-xs text-gray-600"><%= match.scheduled_time&.strftime("%b %d %l:%M %p") || "TBD" %></p>
+              <p class="text-xs text-gray-400"><%= match.scheduled_time&.strftime("%b %d %l:%M %p") || "TBD" %></p>
             </td>
             <td class="px-4 py-3 text-center">
               <div class="flex justify-center gap-1">
@@ -67,7 +68,7 @@
                 </div>
                 <p class="text-xs text-<%= winner %>-400 font-bold mt-1"><%= confidence.round(1) %>%</p>
               <% else %>
-                <span class="text-xs text-gray-600">No prediction</span>
+                <span class="text-xs text-gray-400">No prediction</span>
               <% end %>
             </td>
             <td class="px-4 py-3 text-center">
@@ -88,7 +89,7 @@
 
   <% if @matches.empty? %>
     <div class="text-center py-16">
-      <p class="text-gray-500">No matches found. Sync from TBA to import matches.</p>
+      <p class="text-gray-400">No matches found. Sync from TBA to import matches.</p>
     </div>
   <% end %>
 </div>

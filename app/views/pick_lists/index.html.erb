@@ -19,13 +19,13 @@
       <div class="flex items-center justify-between">
         <div>
           <h3 class="font-semibold text-white group-hover:text-orange-400 transition-colors duration-150"><%= pick_list.name %></h3>
-          <p class="text-sm text-gray-500 mt-1">
+          <p class="text-sm text-gray-400 mt-1">
             By <%= pick_list.user.full_name %>
             &middot; <%= pick_list.team_count %> teams
             &middot; Updated <%= time_ago_in_words(pick_list.updated_at) %> ago
           </p>
         </div>
-        <svg class="w-5 h-5 text-gray-600 group-hover:text-gray-400 transition-colors duration-150 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 text-gray-400 group-hover:text-gray-400 transition-colors duration-150 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
       </div>
@@ -38,8 +38,8 @@
     <svg class="w-12 h-12 text-gray-700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
     </svg>
-    <p class="text-gray-500 font-medium mb-1">No pick lists yet</p>
-    <p class="text-gray-600 text-sm mb-4">Create a pick list to rank teams for alliance selection.</p>
+    <p class="text-gray-400 font-medium mb-1">No pick lists yet</p>
+    <p class="text-gray-400 text-sm mb-4">Create a pick list to rank teams for alliance selection.</p>
     <%= link_to "Create Pick List", new_pick_list_path, class: "btn-primary text-sm" %>
   </div>
 <% end %>

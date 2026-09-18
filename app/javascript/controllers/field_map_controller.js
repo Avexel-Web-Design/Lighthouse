@@ -9,6 +9,7 @@ export default class extends Controller {
 
   connect() {
     this.currentStroke = null
+    this.keyboardPoint = { x: 0.5, y: 0.5 }
     this.strokes = [...this.strokesValue]
 
     // Wait for the image to load so we can size the canvas properly
@@ -34,7 +35,7 @@ export default class extends Controller {
   startStroke(event) {
     if (this.readonlyValue) return
     event.preventDefault()
-    this.canvasTarget.setPointerCapture(event.pointerId)
+    this.canvasTarget.setPointerCapture?.(event.pointerId)
     const point = this.#normalizedPoint(event)
     this.currentStroke = [point]
   }
@@ -72,6 +73,51 @@ export default class extends Controller {
     this.currentStroke = null
     this.#syncHiddenField()
     this.#render()
+  }
+
+  // Keyboard support: canvas is focusable (tabindex=0, role=application).
+  // Arrows move a keyboard cursor (Shift = coarse step), Space/Enter starts
+  // and ends a stroke, Escape cancels it, U/Z undo, C clears — pointer
+  // drawing stays primary, but keyboard users can draw the full path.
+  handleKey(event) {
+    if (this.readonlyValue) return
+    const tag = event.target.tagName
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
+    if (event.metaKey || event.ctrlKey || event.altKey) return
+
+    const key = event.key.toLowerCase()
+    const directions = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] }
+    if (directions[key]) {
+      event.preventDefault()
+      const [dx, dy] = directions[key]
+      const step = event.shiftKey ? 0.1 : 0.02
+      this.keyboardPoint = {
+        x: Math.max(0, Math.min(1, this.keyboardPoint.x + dx * step)),
+        y: Math.max(0, Math.min(1, this.keyboardPoint.y + dy * step))
+      }
+      if (this.currentStroke) this.currentStroke.push({ ...this.keyboardPoint })
+      this.canvasTarget.setAttribute("aria-description", `Cursor ${Math.round(this.keyboardPoint.x * 100)}% across, ${Math.round(this.keyboardPoint.y * 100)}% down. ${this.currentStroke ? "Drawing" : "Ready"}.`)
+      this.#render()
+    } else if (key === " " || key === "enter") {
+      event.preventDefault()
+      if (event.repeat) return
+      if (this.currentStroke) {
+        this.endStroke(event)
+      } else {
+        this.currentStroke = [{ ...this.keyboardPoint }]
+      }
+      this.#render()
+    } else if (key === "escape") {
+      event.preventDefault()
+      this.currentStroke = null
+      this.#render()
+    } else if (key === "u" || key === "z") {
+      event.preventDefault()
+      this.undo()
+    } else if (key === "c") {
+      event.preventDefault()
+      this.clear()
+    }
   }
 
   // --- Private helpers ---
@@ -116,6 +162,13 @@ export default class extends Controller {
     if (this.currentStroke && this.currentStroke.length >= 2) {
       const nextColor = colors[this.strokes.length % 2]
       this.#drawStroke(ctx, this.currentStroke, nextColor, 3)
+    }
+    if (!this.readonlyValue && document.activeElement === canvas) {
+      ctx.beginPath()
+      ctx.strokeStyle = "#ffffff"
+      ctx.lineWidth = 2
+      ctx.arc(this.keyboardPoint.x * this.displayWidth, this.keyboardPoint.y * this.displayHeight, 6, 0, Math.PI * 2)
+      ctx.stroke()
     }
   }
 

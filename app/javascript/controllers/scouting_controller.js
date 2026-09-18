@@ -1,5 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
-import { openDB } from "lib/lighthouse_db"
+import { openDB, SCOUTING_STORE } from "lib/lighthouse_db"
+import { showToast } from "lib/toast"
+import { moveRadioSelection, switchPillTab, updateSelectionCards } from "lib/selection"
 
 // Scoring constants matching app/models/concerns/scoring.rb
 const FUEL_POINT_VALUE = 1
@@ -102,33 +104,22 @@ export default class extends Controller {
     this.updateDisplay()
   }
 
+  // Keyboard support for the auton-climb switch (role="switch"):
+  // Space/Enter toggle, matching native checkbox behavior.
+  toggleAutonClimbFromKey(event) {
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault()
+      this.toggleAutonClimb()
+    }
+  }
+
   selectClimb(event) {
     const level = event.currentTarget.dataset.level
     this.endgameClimbValue = level
 
-    // Highlight the selected card, deselect others
-    this.element.querySelectorAll("[data-climb-card]").forEach(card => {
-      const isSelected = card.dataset.level === level
-      card.classList.toggle("ring-2", isSelected)
-      card.classList.toggle("ring-orange-400", isSelected)
-      card.classList.toggle("bg-orange-500/15", isSelected)
-      card.classList.toggle("border-orange-500", isSelected)
-      card.classList.toggle("shadow-lg", isSelected)
-      card.classList.toggle("shadow-orange-500/10", isSelected)
-      card.classList.toggle("scale-[1.02]", isSelected)
-      card.classList.toggle("bg-gray-800", !isSelected)
-      card.classList.toggle("border-gray-700", !isSelected)
-
-      // Update text color
-      const label = card.querySelector("p:first-child")
-      if (label) {
-        label.classList.toggle("text-orange-400", isSelected)
-        label.classList.toggle("text-gray-300", !isSelected)
-      }
-
-      // Update ARIA
-      card.setAttribute("aria-checked", isSelected)
-    })
+    updateSelectionCards(this.element, "[data-climb-card]",
+      (card) => card.dataset.level === level,
+      ["bg-gray-800", "border-gray-700"])
 
     this.updateDisplay()
   }
@@ -137,63 +128,30 @@ export default class extends Controller {
     const rating = parseInt(event.currentTarget.dataset.rating, 10)
     this.defenseRatingValue = rating
 
-    // Highlight the selected card, deselect others
-    this.element.querySelectorAll("[data-defense-card]").forEach(card => {
-      const isSelected = parseInt(card.dataset.rating, 10) === rating
-      card.classList.toggle("ring-2", isSelected)
-      card.classList.toggle("ring-orange-400", isSelected)
-      card.classList.toggle("bg-orange-500/15", isSelected)
-      card.classList.toggle("border-orange-500", isSelected)
-      card.classList.toggle("shadow-lg", isSelected)
-      card.classList.toggle("shadow-orange-500/10", isSelected)
-      card.classList.toggle("scale-[1.02]", isSelected)
-      card.classList.toggle("bg-gray-800", !isSelected)
-      card.classList.toggle("border-gray-700", !isSelected)
+    updateSelectionCards(this.element, "[data-defense-card]",
+      (card) => parseInt(card.dataset.rating, 10) === rating,
+      ["bg-gray-800", "border-gray-700"])
+  }
 
-      const label = card.querySelector("p:first-child")
-      if (label) {
-        label.classList.toggle("text-orange-400", isSelected)
-        label.classList.toggle("text-gray-300", !isSelected)
-      }
-
-      card.setAttribute("aria-checked", isSelected)
-    })
+  // Arrow-key navigation within climb/defense radiogroups (WAI-APG).
+  navigateRadio(event) {
+    const group = event.currentTarget.closest("[role='radiogroup']")
+    if (!group) return
+    const cards = [...group.querySelectorAll("[role='radio']")]
+    moveRadioSelection(event, cards, cards.indexOf(event.currentTarget))
   }
 
   // --- Tab switching ---
 
+  navigateTab(event) {
+    const buttons = [...this.element.querySelectorAll("[data-tab-button]")]
+    moveRadioSelection(event, buttons, buttons.indexOf(event.currentTarget))
+  }
+
   switchTab(event) {
     const tab = event.currentTarget.dataset.tab
-
-    // Update tab button styling
-    this.element.querySelectorAll("[data-tab-button]").forEach(btn => {
-      const isActive = btn.dataset.tab === tab
-      btn.setAttribute("aria-selected", isActive)
-
-      if (isActive) {
-        btn.classList.add("bg-orange-500/15", "text-orange-400", "shadow-sm")
-        btn.classList.remove("text-gray-400", "hover:text-gray-300", "hover:bg-gray-700/50")
-      } else {
-        btn.classList.remove("bg-orange-500/15", "text-orange-400", "shadow-sm")
-        btn.classList.add("text-gray-400", "hover:text-gray-300", "hover:bg-gray-700/50")
-      }
-    })
-
-    // Show/hide tab content panels with animation
-    this.tabContentTargets.forEach(panel => {
-      const isVisible = panel.dataset.tabPanel === tab
-      if (isVisible) {
-        panel.classList.remove("hidden")
-        panel.classList.add("tab-panel-enter")
-        // Remove animation class after it completes
-        panel.addEventListener("animationend", () => {
-          panel.classList.remove("tab-panel-enter")
-        }, { once: true })
-      } else {
-        panel.classList.add("hidden")
-        panel.classList.remove("tab-panel-enter")
-      }
-    })
+    const buttons = [...this.element.querySelectorAll("[data-tab-button]")]
+    switchPillTab(this.element, buttons, this.tabContentTargets, tab)
   }
 
   // --- Match-team filtering ---
@@ -286,8 +244,8 @@ export default class extends Controller {
         created_at: new Date().toISOString()
       }
 
-      const tx = db.transaction("offline_entries", "readwrite")
-      tx.objectStore("offline_entries").add(entry)
+      const tx = db.transaction(SCOUTING_STORE, "readwrite")
+      tx.objectStore(SCOUTING_STORE).add(entry)
       await new Promise((resolve, reject) => {
         tx.oncomplete = resolve
         tx.onerror = () => reject(tx.error)
@@ -349,30 +307,9 @@ export default class extends Controller {
   }
 
   #showOfflineConfirmation() {
-    const container = document.getElementById("toast-stack") || document.body
-    const toast = document.createElement("div")
-    toast.className = "px-4 py-3 rounded-lg bg-gray-900 border border-amber-500/30 shadow-lg shadow-black/30 text-sm flex items-center gap-2"
-    toast.style.opacity = "0"
-    toast.style.transform = "translateX(-1rem)"
-    toast.style.transition = "opacity 0.2s ease-out, transform 0.2s ease-out"
-    toast.innerHTML = `
-      <svg class="w-4 h-4 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span class="text-gray-200">Entry saved offline. It will sync when you reconnect.</span>
-    `
-    container.appendChild(toast)
-
-    requestAnimationFrame(() => {
-      toast.style.opacity = "1"
-      toast.style.transform = "translateX(0)"
-    })
-
-    setTimeout(() => {
-      toast.style.opacity = "0"
-      toast.style.transform = "translateX(-1rem)"
-      setTimeout(() => toast.remove(), 200)
-    }, 4000)
+    // Rendered via the shared toast helper (textContent-only, role=status)
+    // into the connectivity-owned #toast-stack — no duplicate banners.
+    showToast("Entry saved offline. It will sync when you reconnect.", { type: "info" })
   }
 
   #handleKeydown(event) {
@@ -551,7 +488,7 @@ export default class extends Controller {
     const currentTeamId = select.value
 
     // Clear existing options
-    select.innerHTML = ""
+    select.replaceChildren()
 
     // Always add the prompt option
     const prompt = document.createElement("option")
@@ -645,7 +582,7 @@ export default class extends Controller {
     const previousMatchId = select.value
 
     // Clear existing options
-    select.innerHTML = ""
+    select.replaceChildren()
 
     // Always add the prompt option
     const prompt = document.createElement("option")
