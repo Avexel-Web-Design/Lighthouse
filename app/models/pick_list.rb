@@ -10,8 +10,12 @@ class PickList < ApplicationRecord
   before_validation :normalize_entries
 
   def ordered_team_ids
-    scalar_mode = scalar_entry_mode(Array(entries))
-    Array(entries).filter_map { |entry| extract_team_id(entry, scalar_mode: scalar_mode) }.uniq
+    raw = Array(entries)
+    return [] if raw.empty?
+
+    ids_set, number_to_id = team_lookup_maps
+    scalar_mode = scalar_entry_mode(raw, ids_set, number_to_id)
+    raw.filter_map { |entry| extract_team_id(entry, scalar_mode: scalar_mode, ids_set: ids_set, number_to_id: number_to_id) }.uniq
   end
 
   def team_count
@@ -21,69 +25,73 @@ class PickList < ApplicationRecord
   private
 
   def normalize_entries
-    resolved = ordered_team_ids
-    raw = Array(entries).reject(&:blank?)
-    # Preserve raw invalid inputs so validation can report them
-    # instead of silently dropping to empty (which would pass validation).
-    return if raw.any? && resolved.empty?
-
-    self.entries = resolved
+    resolved = resolve_entry_inputs
+    self.entries = resolved.compact.uniq unless resolved.include?(nil)
   end
 
   def entries_belong_to_event
-    return if event.blank?
-
-    raw = Array(entries).reject(&:blank?)
-    return if raw.empty?
-
-    ordered = ordered_team_ids
-    if ordered.empty?
-      errors.add(:entries, "contain teams that are not part of the selected event")
-      return
-    end
-
-    valid_ids = FrcTeam.at_event(event).where(id: ordered).pluck(:id)
-    invalid_ids = ordered - valid_ids
-    return if invalid_ids.empty?
+    return if event.blank? || !resolve_entry_inputs.include?(nil)
 
     errors.add(:entries, "contain teams that are not part of the selected event")
   end
 
-  def extract_team_id(entry, scalar_mode: nil)
+  def resolve_entry_inputs
+    raw = Array(entries).reject(&:blank?)
+    ids_set, number_to_id = team_lookup_maps
+    scalar_mode = scalar_entry_mode(raw, ids_set, number_to_id)
+    raw.map { |entry| extract_team_id(entry, scalar_mode: scalar_mode, ids_set: ids_set, number_to_id: number_to_id) }
+  end
+
+  # Single batched lookup for all event teams: Set of ids + team_number => id.
+  # Replaces per-entry find_by calls and per-validation count queries.
+  def team_lookup_maps
+    rows = team_scope.pluck(:id, :team_number)
+    [ rows.map(&:first).to_set, rows.to_h { |id, number| [ number, id ] } ]
+  end
+
+  def extract_team_id(entry, scalar_mode: nil, ids_set: nil, number_to_id: nil)
+    ids_set, number_to_id = team_lookup_maps if ids_set.nil? || number_to_id.nil?
+
     case entry
     when Integer
-      team_id_from_scalar(entry, scalar_mode)
+      team_id_from_scalar(entry, scalar_mode, ids_set, number_to_id)
     when String
-      team_id_from_scalar(entry.to_i, scalar_mode) if entry.match?(/\A\d+\z/)
+      team_id_from_scalar(entry.to_i, scalar_mode, ids_set, number_to_id) if entry.match?(/\A\d+\z/)
     when Hash
-      team_id_from_id(entry["id"] || entry[:id] || entry["team_id"] || entry[:team_id] || entry["frc_team_id"] || entry[:frc_team_id]) ||
-        team_id_from_number(entry["team_number"] || entry[:team_number])
+      team_id_from_id(entry["id"] || entry[:id] || entry["team_id"] || entry[:team_id] || entry["frc_team_id"] || entry[:frc_team_id], ids_set) ||
+        team_id_from_number(entry["team_number"] || entry[:team_number], number_to_id)
     end
   end
 
-  def team_id_from_number(team_number)
+  def team_id_from_number(team_number, number_to_id = nil)
     return if team_number.blank?
 
-    team_scope.find_by(team_number: team_number.to_i)&.id
+    number_to_id ||= team_lookup_maps.last
+    number_to_id[team_number.to_i]
   end
 
-  def team_id_from_scalar(value, scalar_mode)
+  def team_id_from_scalar(value, scalar_mode, ids_set = nil, number_to_id = nil)
     candidate = value.to_i
     return if candidate <= 0
 
-    return team_id_from_number(candidate) if scalar_mode == :team_number
+    ids_set, number_to_id = team_lookup_maps if ids_set.nil? || number_to_id.nil?
 
-    team_id_from_id(candidate) || team_id_from_number(candidate)
+    return team_id_from_number(candidate, number_to_id) if scalar_mode == :team_number
+
+    team_id_from_id(candidate, ids_set) || team_id_from_number(candidate, number_to_id)
   end
 
-  def team_id_from_id(value)
+  def team_id_from_id(value, ids_set = nil)
+    return if value.blank?
+
     candidate = value.to_i
     return if candidate <= 0
 
-    team_scope.find_by(id: candidate)&.id
+    ids_set ||= team_lookup_maps.first
+    ids_set.include?(candidate) ? candidate : nil
   end
 
-  def scalar_entry_mode(raw_entries)
+  def scalar_entry_mode(raw_entries, ids_set = nil, number_to_id = nil)
     scalar_values = raw_entries.filter_map do |entry|
       case entry
       when Integer
@@ -95,8 +103,10 @@ class PickList < ApplicationRecord
 
     return :team_number if scalar_values.empty?
 
-    id_matches = team_scope.where(id: scalar_values).count
-    team_number_matches = team_scope.where(team_number: scalar_values).count
+    ids_set, number_to_id = team_lookup_maps if ids_set.nil? || number_to_id.nil?
+
+    id_matches = scalar_values.count { |v| ids_set.include?(v) }
+    team_number_matches = scalar_values.count { |v| number_to_id.key?(v) }
 
     return :id if id_matches > team_number_matches
 

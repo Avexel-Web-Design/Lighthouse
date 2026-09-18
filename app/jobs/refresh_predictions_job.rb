@@ -2,7 +2,7 @@
 
 class RefreshPredictionsJob < ApplicationJob
   queue_as :default
-  retry_on StandardError, wait: :polynomially_longer, attempts: 3
+  retry_on Faraday::Error, Timeout::Error, wait: :polynomially_longer, attempts: 3
 
   # Regenerates all match predictions for an event using
   # blended scouting + Statbotics EPA data.

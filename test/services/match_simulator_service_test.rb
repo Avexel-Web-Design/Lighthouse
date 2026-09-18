@@ -8,6 +8,45 @@ class MatchSimulatorServiceTest < ActiveSupport::TestCase
     @service = MatchSimulatorService.new(@event)
   end
 
+  test "constructor RNG and iteration defaults are used and can be overridden" do
+    calls = 0
+    rng = Object.new
+    rng.define_singleton_method(:rand) { calls += 1; 0.5 }
+    team = frc_teams(:team_254)
+    service = MatchSimulatorService.new(@event, rng: rng, iterations: 3)
+
+    result = service.simulate([ team ], [ team ])
+    assert_equal 12, calls
+    assert_equal 50.0, result[:red_win_pct]
+    assert_equal 50.0, result[:blue_win_pct]
+
+    service.simulate([ team ], [ team ], iterations: 2)
+    assert_equal 20, calls
+    service.simulate([ team ], [ team ], iterations: 2, rng: Random.new(123))
+    assert_equal 20, calls
+  end
+
+  test "default simulation uses one thousand iterations with an injectable RNG" do
+    calls = 0
+    rng = Object.new
+    rng.define_singleton_method(:rand) { calls += 1; 0.5 }
+    service = MatchSimulatorService.new(@event, rng: rng)
+
+    service.simulate([ frc_teams(:team_254) ], [])
+
+    assert_equal 2000, calls
+  end
+
+  test "zero RNG samples produce finite scores" do
+    rng = Object.new
+    rng.define_singleton_method(:rand) { 0.0 }
+
+    result = @service.simulate([ frc_teams(:team_254) ], [], iterations: 1, rng: rng)
+
+    assert result[:red_avg].finite?
+    assert result[:red_avg] >= 0
+  end
+
   test "simulate returns expected hash keys" do
     red_teams = [ frc_teams(:team_254) ]
     blue_teams = [ frc_teams(:team_1678) ]

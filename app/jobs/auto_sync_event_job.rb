@@ -5,11 +5,21 @@ class AutoSyncEventJob < ApplicationJob
   retry_on StandardError, wait: :polynomially_longer, attempts: 2
 
   # Runs TBA sync and downstream jobs asynchronously after dashboard load.
+  # Downstream jobs are only enqueued after a successful TBA sync (or when
+  # no TBA sync is needed). A raised sync error re-raises so the job retries
+  # instead of fanning out on stale data.
   def perform(event_id)
     event = Event.find_by(id: event_id)
     return unless event
 
-    TbaSyncService.new(event.tba_key).sync_matches! if event.tba_key.present? && TbaClient.configured?
+    if event.tba_key.present? && TbaClient.configured?
+      begin
+        TbaSyncService.new(event.tba_key).sync_matches!
+      rescue StandardError => e
+        Rails.logger.error("[AutoSyncEventJob] TBA sync failed for event #{event.tba_key}: #{e.message}; skipping downstream")
+        raise
+      end
+    end
 
     RefreshSummariesJob.perform_later(event.id)
     SyncStatboticsJob.perform_later(event.id)

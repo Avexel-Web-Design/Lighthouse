@@ -56,9 +56,14 @@ class SyncStatboticsJob < ApplicationJob
         data: entry,
         last_synced_at: now
       )
-      cache.save!
-    rescue ActiveRecord::RecordInvalid => e
-      Rails.logger.warn("[SyncStatboticsJob] Failed to cache team #{entry['team']}: #{e.message}")
+      # Per-team transaction so one bad row rolls back alone without
+      # aborting the whole batch. Rescue stays narrow (validation only);
+      # unexpected errors still bubble to retry.
+      begin
+        ActiveRecord::Base.transaction { cache.save! }
+      rescue ActiveRecord::RecordInvalid => e
+        Rails.logger.warn("[SyncStatboticsJob] Failed to cache team #{entry['team']}: #{e.message}")
+      end
     end
   end
 end

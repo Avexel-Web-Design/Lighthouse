@@ -20,7 +20,7 @@ class MatchSimulatorController < ApplicationController
     # Use Monte Carlo simulation instead of simple sum
     iterations = (params[:iterations] || 1000).to_i.clamp(100, 5000)
     simulator = MatchSimulatorService.new(current_event, statbotics: StatboticsClient.new)
-    @simulation = simulator.simulate(@red_teams.to_a, @blue_teams.to_a)
+    @simulation = simulator.simulate(@red_teams.to_a, @blue_teams.to_a, iterations: iterations)
 
     @red_score = @simulation[:red_avg]
     @blue_score = @simulation[:blue_avg]

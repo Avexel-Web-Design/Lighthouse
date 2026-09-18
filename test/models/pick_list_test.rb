@@ -3,6 +3,19 @@ require "test_helper"
 class PickListTest < ActiveSupport::TestCase
   # --- Validations ---
 
+  test "team lookups reflect event membership changes on the same instance" do
+    pick_list = pick_lists(:championship_picks)
+    team = frc_teams(:team_254)
+    membership = EventTeam.find_by!(event: pick_list.event, frc_team: team)
+    assert_includes pick_list.ordered_team_ids, team.id
+
+    membership.destroy!
+    assert_not_includes pick_list.ordered_team_ids, team.id
+
+    EventTeam.create!(event: pick_list.event, frc_team: team)
+    assert_includes pick_list.ordered_team_ids, team.id
+  end
+
   test "valid pick list from fixtures" do
     assert pick_lists(:championship_picks).valid?
   end
@@ -63,7 +76,9 @@ class PickListTest < ActiveSupport::TestCase
       user: users(:admin_user)
     )
 
-    assert_not pick_list.valid?
+    2.times { assert_not pick_list.valid? }
+    assert_equal [ frc_teams(:team_6328).id ], pick_list.entries
+    assert_not pick_list.save
     assert_includes pick_list.errors[:entries], "contain teams that are not part of the selected event"
   end
 end

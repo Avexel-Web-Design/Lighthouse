@@ -68,13 +68,61 @@ class ScoutingAssignmentNotificationJobTest < ActiveJob::TestCase
     ENV["VAPID_PRIVATE_KEY"] = @original_vapid["VAPID_PRIVATE_KEY"]
   end
 
+  test "claims the threshold before delivery so an overlapping run skips it" do
+    scouting_assignments(:admin_qm1).destroy!
+    @event.matches.where(comp_level: "qm").where.not(id: matches(:qm1).id).update_all(red_score: nil, blue_score: nil)
+    original_public = ENV["VAPID_PUBLIC_KEY"]
+    original_private = ENV["VAPID_PRIVATE_KEY"]
+    ENV["VAPID_PUBLIC_KEY"] = "public"
+    ENV["VAPID_PRIVATE_KEY"] = "private"
+    captured = []
+
+    with_stubbed_webpush(captured, after_send: -> {
+      assert @assignment.reload.notified_1_at.present?
+      ScoutingAssignmentNotificationJob.perform_now(@event.id)
+    }) do
+      ScoutingAssignmentNotificationJob.perform_now(@event.id)
+      ScoutingAssignmentNotificationJob.perform_now(@event.id)
+    end
+
+    assert_equal 1, captured.size
+  ensure
+    ENV["VAPID_PUBLIC_KEY"] = original_public
+    ENV["VAPID_PRIVATE_KEY"] = original_private
+  end
+
+  test "failed delivery releases the claim for a later attempt" do
+    scouting_assignments(:admin_qm1).destroy!
+    @event.matches.where(comp_level: "qm").where.not(id: matches(:qm1).id).update_all(red_score: nil, blue_score: nil)
+    original_public = ENV["VAPID_PUBLIC_KEY"]
+    original_private = ENV["VAPID_PRIVATE_KEY"]
+    ENV["VAPID_PUBLIC_KEY"] = "public"
+    ENV["VAPID_PRIVATE_KEY"] = "private"
+
+    with_stubbed_webpush_error do
+      ScoutingAssignmentNotificationJob.perform_now(@event.id)
+    end
+    assert_nil @assignment.reload.notified_1_at
+
+    captured = []
+    with_stubbed_webpush(captured) do
+      ScoutingAssignmentNotificationJob.perform_now(@event.id)
+    end
+    assert_equal 1, captured.size
+    assert @assignment.reload.notified_1_at.present?
+  ensure
+    ENV["VAPID_PUBLIC_KEY"] = original_public
+    ENV["VAPID_PRIVATE_KEY"] = original_private
+  end
+
   private
 
-  def with_stubbed_webpush(captured)
+  def with_stubbed_webpush(captured, after_send: nil)
     singleton = class << Webpush; self; end
     singleton.send(:alias_method, :__original_payload_send_for_test, :payload_send)
     singleton.send(:define_method, :payload_send) do |**kwargs|
       captured << kwargs
+      after_send&.call
       true
     end
 
