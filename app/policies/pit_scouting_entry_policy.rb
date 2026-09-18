@@ -26,7 +26,7 @@ class PitScoutingEntryPolicy < ApplicationPolicy
   private
 
   def owner?
-    record.user_id == user.id
+    user.present? && record.user_id == user.id
   end
 
   class Scope < ApplicationPolicy::Scope

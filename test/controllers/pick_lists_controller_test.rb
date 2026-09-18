@@ -67,8 +67,7 @@ class PickListsControllerTest < ActionDispatch::IntegrationTest
     select_event(@event)
 
     get pick_list_path(@pick_list)
-    # Pundit denies via authorize — redirects
-    assert_response :redirect
+    assert_response :not_found
   end
 
   # --- New ---

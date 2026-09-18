@@ -113,7 +113,7 @@ class PitScoutingEntriesController < ApplicationController
   private
 
   def set_pit_scouting_entry
-    @pit_scouting_entry = PitScoutingEntry.find(params[:id])
+    @pit_scouting_entry = policy_scope(PitScoutingEntry).where(event: current_event).find(params[:id])
   end
 
   def pit_scouting_entry_params

@@ -2,10 +2,20 @@ module Api
   module V1
     class ExportsController < ActionController::API
       include ApiAuthenticatable
+      include Pundit::Authorization
+
+      rescue_from Pundit::NotAuthorizedError, with: :render_forbidden
 
       def scouting_data
-        event = Event.find(params[:event_id])
-        entries = ScoutingEntry.where(event: event).includes(:user, :frc_team, :match)
+        authorize :export, :json?
+
+        event = Event.find_by(id: params[:event_id])
+        unless event
+          render json: { error: "Event not found" }, status: :not_found
+          return
+        end
+
+        entries = policy_scope(ScoutingEntry).where(event: event).includes(:user, :frc_team, :match)
 
         format = params[:format] || "json"
 
@@ -29,6 +39,16 @@ module Api
         else
           render json: { error: "Unsupported format: #{format}" }, status: :bad_request
         end
+      end
+
+      private
+
+      def pundit_user
+        current_api_user
+      end
+
+      def render_forbidden
+        render json: { error: "Forbidden" }, status: :forbidden
       end
     end
   end
