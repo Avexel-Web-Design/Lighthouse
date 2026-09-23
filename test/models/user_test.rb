@@ -36,6 +36,17 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "Jane Doe", user.username
   end
 
+  test "explicit login fields survive creation and name changes" do
+    user = User.create!(first_name: "Jane", last_name: "Doe", username: "custom-login",
+                        email: "custom@example.com", password: "password123")
+    user.update!(first_name: "Janet", last_name: "Smith")
+    assert_equal "custom-login", user.reload.username
+    assert_equal "custom@example.com", user.email
+    user.update!(username: "", email: "")
+    assert_equal "Janet Smith", user.username
+    assert_equal "janet-smith@lighthouse.local", user.email
+  end
+
   test "auto-generates email when blank" do
     user = User.new(first_name: "Jane", last_name: "Doe", password: "password123")
     user.valid?

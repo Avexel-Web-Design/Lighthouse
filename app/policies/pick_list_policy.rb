@@ -21,7 +21,7 @@ class PickListPolicy < ApplicationPolicy
 
   class Scope < ApplicationPolicy::Scope
     def resolve
-      if admin?
+      if analyst?
         scope.all
       else
         scope.where(user: user)

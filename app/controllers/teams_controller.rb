@@ -30,7 +30,7 @@ class TeamsController < ApplicationController
   end
 
   def show
-    @team = FrcTeam.find(params[:id])
+    @team = policy_scope(FrcTeam).at_event(current_event).find(params[:id])
     authorize @team, policy_class: FrcTeamPolicy
 
     @entries = ScoutingEntry.where(event: current_event, frc_team: @team)

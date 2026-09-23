@@ -22,7 +22,7 @@ class ScoutingAssignmentsController < ApplicationController
     end
 
     @assignment_lookup = @assignments.index_by { |a| [ a.user_id, a.match_id ] }
-    @coverage_counts = ScoutingAssignment.where(event: current_event, match_id: @matches.map(&:id)).group(:match_id).count
+    @coverage_counts = policy_scope(ScoutingAssignment).where(event: current_event, match_id: @matches.map(&:id)).group(:match_id).count
     @match_position = @matches.each_with_index.to_h
     @current_match_index = latest_completed_match_index(@matches) || 0
     @shift_starts = compute_shift_starts(@assignments)
@@ -63,7 +63,7 @@ class ScoutingAssignmentsController < ApplicationController
       end
     end
 
-    @coverage_count = ScoutingAssignment.where(event: current_event, match: @match).count
+    @coverage_count = policy_scope(ScoutingAssignment).where(event: current_event, match: @match).count
     @is_shift_start = shift_start?(@user, @match)
     @is_admin = true
 
