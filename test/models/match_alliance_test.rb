@@ -42,6 +42,8 @@ class MatchAllianceTest < ActiveSupport::TestCase
   end
 
   test "same team can be in different matches" do
+    # Fresh match isolates the test from fixture changes; the new (match, team)
+    # and (match, color, station) combinations violate neither uniqueness index.
     match = events(:championship).matches.create!(comp_level: "qm", match_number: 101, set_number: 1)
     alliance = MatchAlliance.new(
       match: match,
@@ -49,7 +51,7 @@ class MatchAllianceTest < ActiveSupport::TestCase
       alliance_color: "blue",
       station: 2
     )
-    assert alliance.valid?
+    assert alliance.valid?, alliance.errors.full_messages.to_sentence
   end
 
   # --- Associations ---

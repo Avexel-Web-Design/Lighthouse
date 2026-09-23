@@ -26,6 +26,27 @@ class TeamEventSummaryTest < ActiveSupport::TestCase
     assert_respond_to TeamEventSummary, :refresh!
   end
 
+  test "refresh populates an empty view inside a transaction" do
+    TeamEventSummary.connection.execute("REFRESH MATERIALIZED VIEW team_event_summaries WITH NO DATA")
+    TeamEventSummary.refresh!
+    assert TeamEventSummary.exists?(event: events(:championship))
+    assert_equal 1, TeamEventSummary.connection.select_value("SELECT 1")
+  end
+
+  test "fallback handles wrapped errors without a PostgreSQL result" do
+    error = begin
+      begin
+        raise StandardError, "adapter wrapper"
+      rescue StandardError
+        raise ActiveRecord::StatementInvalid, "view has not been populated"
+      end
+    rescue ActiveRecord::StatementInvalid => raised
+      raised
+    end
+    assert TeamEventSummary.send(:unpopulated_view_error?, error)
+    assert_not TeamEventSummary.send(:unpopulated_view_error?, ActiveRecord::StatementInvalid.new("unrelated error"))
+  end
+
   test "exposes average defense rating" do
     TeamEventSummary.refresh!
 

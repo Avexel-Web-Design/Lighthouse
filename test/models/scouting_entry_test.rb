@@ -1,6 +1,56 @@
 require "test_helper"
 
 class ScoutingEntryTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+  include ActionCable::TestHelper
+
+  test "committed mutations broadcast once and enqueue summary refreshes" do
+    entry = ScoutingEntry.new(event: events(:championship), frc_team: frc_teams(:team_254),
+                              user: users(:admin_user), data: {}, client_uuid: "")
+    stream = "scouting_entries_event_#{entry.event_id}"
+    [ [ "prepend", -> { entry.save! } ], [ "replace", -> { entry.update!(notes: "Updated") } ],
+      [ "remove", -> { entry.destroy! } ] ].each do |action, mutation|
+      messages = capture_broadcasts(stream) do
+        assert_enqueued_jobs 1, only: RefreshSummariesJob do
+          assert_enqueued_with(job: RefreshSummariesJob, args: [ entry.event_id ], &mutation)
+        end
+      end
+      assert_equal 1, messages.size
+      assert_includes messages.first, "action=\"#{action}\""
+    end
+    assert_nil entry.client_uuid
+  end
+
+  test "rolled back entries neither broadcast nor enqueue refreshes" do
+    stream = "scouting_entries_event_#{events(:championship).id}"
+    assert_no_broadcasts(stream) do
+      assert_no_enqueued_jobs only: RefreshSummariesJob do
+        ScoutingEntry.transaction(requires_new: true) do
+          ScoutingEntry.create!(event: events(:championship), frc_team: frc_teams(:team_254),
+                                user: users(:admin_user), data: {})
+          raise ActiveRecord::Rollback
+        end
+      end
+    end
+  end
+
+  test "integer parsing distinguishes missing and malformed values from zero" do
+    entry = ScoutingEntry.new(data: {})
+    [ nil, true, false, [], {}, "bad", "1.5", 1.5 ].each do |value|
+      entry.data = { "auton_fuel_made" => value }
+      assert_nil entry.send(:dig_int, "auton_fuel_made")
+      assert_equal 0, entry.total_fuel_made
+      assert_equal 0, entry.auton_points
+    end
+    [ [ 0, 0 ], [ "0", 0 ], [ "12", 12 ], [ "-2", -2 ] ].each do |value, expected|
+      entry.data = { "auton_fuel_made" => value }
+      assert_equal expected, entry.send(:dig_int, "auton_fuel_made")
+    end
+    entry.data = nil
+    assert_equal 0, entry.total_points
+    assert_equal 0, entry.defense_rating
+  end
+
   # --- Validations ---
 
   test "valid scouting entry from fixtures" do

@@ -1,4 +1,3 @@
-# Simulation Results
 sim_254_vs_1678:
   red_team_ids: '[254, 4414, 118]'
   blue_team_ids: '[1678]'

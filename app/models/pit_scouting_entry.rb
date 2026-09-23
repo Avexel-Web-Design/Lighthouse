@@ -7,9 +7,13 @@ class PitScoutingEntry < ApplicationRecord
 
   has_many_attached :photos
 
-  enum :status, { submitted: 0, flagged: 1, rejected: 2 }
+  enum :status, { submitted: 0, flagged: 1, rejected: 2, approved: 3 }
 
+  # client_uuid follows the same nullable-global-unique contract as
+  # ScoutingEntry; (event, frc_team, user) mirrors idx_pit_scouting_entries_unique.
+  normalizes :client_uuid, with: ->(uuid) { uuid.presence }
   validates :client_uuid, uniqueness: true, allow_nil: true
+  validates :frc_team_id, uniqueness: { scope: %i[event_id user_id] }
 
   # --- Robot Specs ---
   def robot_width  = data&.dig("robot_width")

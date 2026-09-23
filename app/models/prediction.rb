@@ -6,6 +6,7 @@ class Prediction < ApplicationRecord
 
   validates :source, presence: true,
             inclusion: { in: %w[scouting statbotics blended] }
+  validates :match_id, uniqueness: { scope: :source }
 
   scope :for_event, ->(event) { where(event: event) }
   scope :blended, -> { where(source: "blended") }

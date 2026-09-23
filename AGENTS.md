@@ -166,8 +166,8 @@ RuboCop with **rubocop-rails-omakase** (the Rails team's official style guide). 
 ### Authorization (Pundit)
 
 - `ApplicationPolicy` defaults all actions to `false` (deny by default).
-- Policies check roles via helpers: `admin?`, `lead?`, `analyst?`, `scout?`, `admin_or_lead?`.
-- Role hierarchy: `scout < analyst < lead < admin < owner` (via `Membership` model).
+- Policies check roles via helpers: `admin?`, `analyst?`, `scout?` (entry policies use a local `owner?` meaning the record's author, not a role).
+- Role hierarchy: `scout < analyst < admin` (`User` enum; the old Membership-based `lead`/`owner` roles were removed).
 - Every controller action must call `authorize`.
 
 ### Frontend

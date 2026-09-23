@@ -7,6 +7,41 @@ class SimulationResultTest < ActiveSupport::TestCase
     assert simulation_results(:sim_254_vs_1678).valid?
   end
 
+  test "saves partial alliances without padding them with unrelated teams" do
+    sim = build_simulation_result
+    assert sim.save, sim.errors.full_messages.to_sentence
+    assert_equal [ frc_teams(:team_1678).id ], sim.reload.blue_teams.ids
+  end
+
+  test "team ids take precedence over colliding team numbers" do
+    team = frc_teams(:team_254)
+    collision = FrcTeam.create!(team_number: team.id)
+    EventTeam.create!(event: events(:championship), frc_team: collision)
+    sim = build_simulation_result
+    sim.red_team_ids = [ team.id.to_s ]
+    assert_equal [ team.id ], sim.red_teams.ids
+    assert sim.valid?, sim.errors.full_messages.to_sentence
+  end
+
+  test "out of event ids cannot resolve to a colliding event team number" do
+    outsider = frc_teams(:team_6328)
+    collision = FrcTeam.create!(team_number: outsider.id)
+    EventTeam.create!(event: events(:championship), frc_team: collision)
+    sim = build_simulation_result
+    sim.red_team_ids = [ outsider.id ]
+    assert_not sim.valid?
+    assert_includes sim.errors[:red_team_ids], "must only include teams from the selected event"
+  end
+
+  test "malformed references are not silently discarded" do
+    sim = build_simulation_result
+    [ [ 254, nil ], [ 254, "bad" ], "{", { "id" => 254 } ].each do |refs|
+      sim.red_team_ids = refs
+      assert_not sim.valid?
+      assert_includes sim.errors[:red_team_ids], "must contain valid team references"
+    end
+  end
+
   test "requires red_team_ids" do
     sim = simulation_results(:sim_254_vs_1678)
     sim.red_team_ids = nil
