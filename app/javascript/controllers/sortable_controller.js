@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { showToast } from "lib/toast"
 
 export default class extends Controller {
   static targets = ["item", "list", "rank"]
@@ -248,7 +249,11 @@ export default class extends Controller {
       hiddenField.value = JSON.stringify(orderedIds)
     }
 
-    // Auto-save via PATCH if a save URL is configured
+    // Auto-save via PATCH if a save URL is configured.
+    // Raw fetch (not a Turbo visit) on purpose: this is a JSON API call that
+    // must not trigger Turbo Drive navigation or cache invalidation. It still
+    // respects Turbo by sending the CSRF token + same-origin credentials and
+    // accepting JSON only, matching PickListsController#update format.json.
     const url = this.element.dataset.sortableSaveUrl
     if (!url) return
 
@@ -262,41 +267,18 @@ export default class extends Controller {
           "X-CSRF-Token": csrfToken || "",
           "Accept": "application/json"
         },
+        credentials: "same-origin",
         body: JSON.stringify({ entries: orderedIds })
       })
 
       if (response.ok) {
-        this.#showToast("Order saved", "success")
+        showToast("Order saved", { type: "success", duration: 2000 })
       } else {
-        this.#showToast("Failed to save order", "error")
+        showToast("Failed to save order", { type: "error", duration: 2000 })
       }
     } catch (error) {
       console.error("[Lighthouse] Failed to save sort order:", error)
-      this.#showToast("Failed to save order", "error")
+      showToast("Failed to save order", { type: "error", duration: 2000 })
     }
-  }
-
-  #showToast(message, type = "success") {
-    const toast = document.createElement("div")
-    const isSuccess = type === "success"
-    toast.className = `fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg text-sm font-medium animate-slide-down flex items-center gap-2 ${
-      isSuccess
-        ? "bg-orange-600 text-white"
-        : "bg-red-600 text-white"
-    }`
-
-    const icon = isSuccess
-      ? '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>'
-      : '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>'
-
-    toast.innerHTML = `${icon}<span>${message}</span>`
-    document.body.appendChild(toast)
-
-    setTimeout(() => {
-      toast.style.transition = "opacity 0.3s ease-out, transform 0.3s ease-out"
-      toast.style.opacity = "0"
-      toast.style.transform = "translate(-50%, 8px)"
-      setTimeout(() => toast.remove(), 300)
-    }, 2000)
   }
 }

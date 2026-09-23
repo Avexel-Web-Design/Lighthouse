@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
-class StatboticsClient
+class StatboticsClient < BaseApiClient
   BASE_URL = "https://api.statbotics.io/v3"
   CACHE_TTL = 1.hour
+  LOG_PREFIX = "StatboticsClient"
 
   def initialize
-    @conn = build_connection
+    @conn = self.class.build_connection(
+      base_url: BASE_URL,
+      headers: { "Accept" => "application/json" }
+    )
   end
 
   # GET /team_year/{team}/{year}
@@ -34,29 +38,7 @@ class StatboticsClient
 
   private
 
-  def build_connection
-    Faraday.new(url: BASE_URL) do |f|
-      f.headers["Accept"] = "application/json"
-      f.request :retry, max: 3, interval: 0.5, backoff_factor: 2,
-                        exceptions: [ Faraday::TimeoutError, Faraday::ConnectionFailed ]
-      f.response :json, parser_options: { symbolize_names: false }
-      f.adapter Faraday.default_adapter
-    end
-  end
-
   def cached_get(cache_key, path, params = {})
-    Rails.cache.fetch(cache_key, expires_in: CACHE_TTL, skip_nil: true) do
-      response = @conn.get(path, params)
-
-      if response.success?
-        response.body
-      else
-        Rails.logger.warn("[StatboticsClient] #{path} returned #{response.status}: #{response.body}")
-        nil
-      end
-    end
-  rescue Faraday::Error => e
-    Rails.logger.error("[StatboticsClient] Request to #{path} failed: #{e.message}")
-    nil
+    super(cache_key, path, params, expires_in: CACHE_TTL, log_prefix: LOG_PREFIX)
   end
 end

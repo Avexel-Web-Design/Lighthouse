@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { openDB, SCOUTING_STORE, PIT_STORE } from "lib/lighthouse_db"
+import { showToast } from "lib/toast"
 
 /**
  * Manages the offline connectivity toast, sync queue count,
@@ -23,6 +24,14 @@ export default class extends Controller {
     window.addEventListener("offline", this._onOffline)
     window.addEventListener("lighthouse:sync-complete", this._onSyncComplete)
     window.addEventListener("lighthouse:entry-queued", this._onEntryQueued)
+    // Single toast owner: other controllers (offline, sortable, scouting)
+    // dispatch lighthouse:toast instead of creating their own fixed banners,
+    // so offline + sync toasts never stack as duplicates.
+    this._onToast = (event) => {
+      const { message, type } = event.detail || {}
+      if (message) showToast(message, { type: type || "info" })
+    }
+    window.addEventListener("lighthouse:toast", this._onToast)
     navigator.serviceWorker?.addEventListener("message", this._onMessage)
 
     if (navigator.onLine) {
@@ -39,6 +48,7 @@ export default class extends Controller {
     window.removeEventListener("offline", this._onOffline)
     window.removeEventListener("lighthouse:sync-complete", this._onSyncComplete)
     window.removeEventListener("lighthouse:entry-queued", this._onEntryQueued)
+    window.removeEventListener("lighthouse:toast", this._onToast)
     navigator.serviceWorker?.removeEventListener("message", this._onMessage)
     if (this._autoDismissTimeout) clearTimeout(this._autoDismissTimeout)
     if (this._prefetchBannerTimeout) clearTimeout(this._prefetchBannerTimeout)
@@ -64,10 +74,12 @@ export default class extends Controller {
     setTimeout(() => this.#updateQueueCount(), 3000)
   }
 
-  toggleDetails() {
+  toggleDetails(event) {
     if (this.hasDetailsTarget) {
       this.detailsTarget.classList.toggle("hidden")
-      if (!this.detailsTarget.classList.contains("hidden")) {
+      const expanded = !this.detailsTarget.classList.contains("hidden")
+      event?.currentTarget?.setAttribute("aria-expanded", String(expanded))
+      if (expanded) {
         this.#populateDetails()
       }
     }
@@ -179,6 +191,10 @@ export default class extends Controller {
     }
     if (this.hasProgressBarTarget) {
       this.progressBarTarget.style.width = "0%"
+      // aria-valuenow lives on the role=progressbar wrapper (layout ERB);
+      // keep the fill + wrapper in sync for AT.
+      this.progressBarTarget.setAttribute("aria-valuenow", "0")
+      this.progressBarTarget.closest("[role='progressbar']")?.setAttribute("aria-valuenow", "0")
     }
   }
 
@@ -340,30 +356,56 @@ export default class extends Controller {
       }
 
       if (items.length === 0) {
-        this.detailsListTarget.innerHTML = `
-          <li class="text-xs text-gray-500 py-1.5 text-center">No queued entries</li>
-        `
+        this.detailsListTarget.replaceChildren()
+        const empty = document.createElement("li")
+        empty.className = "text-xs text-gray-400 py-1.5 text-center"
+        empty.textContent = "No queued entries"
+        this.detailsListTarget.appendChild(empty)
         return
       }
 
-      this.detailsListTarget.innerHTML = items.map((item) => {
-        const statusClass = item.failed ? "text-red-400" : "text-amber-400"
-        const statusLabel = item.failed ? "Failed" : "Pending"
-        const time = item.createdAt ? new Date(item.createdAt).toLocaleTimeString() : ""
-        const errorMsg = item.errors.length > 0 ? `<div class="text-[10px] text-red-400/70 mt-0.5">${item.errors[0]}</div>` : ""
+      // Build rows with textContent only: team ids, timestamps, and sync
+      // errors all originate from IndexedDB / server responses and must
+      // never be interpolated into innerHTML.
+      this.detailsListTarget.replaceChildren()
+      for (const item of items) {
+        const row = document.createElement("li")
+        row.className = "flex items-center justify-between py-1.5 border-b border-gray-800/50 last:border-0"
 
-        return `
-          <li class="flex items-center justify-between py-1.5 border-b border-gray-800/50 last:border-0">
-            <div class="min-w-0">
-              <span class="text-xs font-medium text-gray-300">${item.type}</span>
-              <span class="text-xs text-gray-500 ml-1">Team ${item.team}</span>
-              <span class="text-[10px] text-gray-600 ml-1">${time}</span>
-              ${errorMsg}
-            </div>
-            <span class="text-[10px] font-medium ${statusClass} shrink-0 ml-2">${statusLabel}</span>
-          </li>
-        `
-      }).join("")
+        const info = document.createElement("div")
+        info.className = "min-w-0"
+
+        const type = document.createElement("span")
+        type.className = "text-xs font-medium text-gray-300"
+        type.textContent = item.type
+        info.appendChild(type)
+
+        const team = document.createElement("span")
+        team.className = "text-xs text-gray-400 ml-1"
+        team.textContent = `Team ${item.team}`
+        info.appendChild(team)
+
+        const time = document.createElement("span")
+        time.className = "text-[10px] text-gray-400 ml-1"
+        time.textContent = item.createdAt ? new Date(item.createdAt).toLocaleTimeString() : ""
+        info.appendChild(time)
+
+        if (item.errors.length > 0) {
+          const errorMsg = document.createElement("div")
+          errorMsg.className = "text-[10px] text-red-400/70 mt-0.5"
+          errorMsg.textContent = item.errors[0]
+          info.appendChild(errorMsg)
+        }
+
+        const status = document.createElement("span")
+        status.className = `text-[10px] font-medium shrink-0 ml-2 ${item.failed ? "text-red-400" : "text-amber-400"}`
+        status.textContent = item.failed ? "Failed" : "Pending"
+        // Text label (not color-only) for AT + sighted users alike.
+        status.setAttribute("aria-label", `Sync status: ${item.failed ? "Failed" : "Pending"}`)
+
+        row.append(info, status)
+        this.detailsListTarget.appendChild(row)
+      }
     } catch (error) {
       console.error("[Lighthouse] Failed to populate details:", error)
     }

@@ -15,7 +15,7 @@
           <span class="text-gray-400 font-normal text-lg ml-1"><%= @team.nickname %></span>
         <% end %>
       </h1>
-      <p class="text-sm text-gray-500">
+      <p class="text-sm text-gray-400">
         <%= [@team.city, @team.state_prov, @team.country].compact.join(", ") %>
         <% if @team.rookie_year.present? %>
           &middot; Rookie Year: <%= @team.rookie_year %>
@@ -44,7 +44,7 @@
           <p class="text-3xl font-bold text-amber-400 font-mono">#<%= @epa.qual_rank %></p>
           <p class="text-xs text-gray-400 mt-1 font-medium">Qual Rank<%= " / #{@epa.qual_num_teams}" if @epa.qual_num_teams %></p>
         <% else %>
-          <p class="text-3xl font-bold text-gray-500 font-mono">---</p>
+          <p class="text-3xl font-bold text-gray-400 font-mono">---</p>
           <p class="text-xs text-gray-400 mt-1 font-medium">Qual Rank</p>
         <% end %>
       </div>
@@ -75,7 +75,7 @@
           <p class="text-3xl font-bold text-sky-400 font-mono"><%= @summary.avg_defense_rating.to_f.round(1) %></p>
           <p class="text-xs text-gray-400 mt-1 font-medium">Avg Defence Rating</p>
         <% else %>
-          <p class="text-3xl font-bold text-gray-500 font-mono">---</p>
+          <p class="text-3xl font-bold text-gray-400 font-mono">---</p>
           <p class="text-xs text-gray-400 mt-1 font-medium">Avg Defence Rating</p>
         <% end %>
       </div>
@@ -109,7 +109,7 @@
               <span class="text-gray-400">Avg Fuel Made</span>
               <span class="font-mono text-emerald-400 font-semibold"><%= made %></span>
             </div>
-            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden" role="progressbar" aria-label="Average fuel made: <%= made %>">
+            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden" role="progressbar" aria-label="Average fuel made: <%= made %>" aria-valuenow="<%= (made.to_f / max_fuel * 100).round(0) %>" aria-valuemin="0" aria-valuemax="100" aria-valuetext="<%= made %> fuel made">
               <div class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: <%= (made.to_f / max_fuel * 100).round(0) %>%"></div>
             </div>
           </div>
@@ -118,7 +118,7 @@
               <span class="text-gray-400">Avg Fuel Missed</span>
               <span class="font-mono text-red-400 font-semibold"><%= missed %></span>
             </div>
-            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden" role="progressbar" aria-label="Average fuel missed: <%= missed %>">
+            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden" role="progressbar" aria-label="Average fuel missed: <%= missed %>" aria-valuenow="<%= (missed.to_f / max_fuel * 100).round(0) %>" aria-valuemin="0" aria-valuemax="100" aria-valuetext="<%= missed %> fuel missed">
               <div class="h-full bg-red-500 rounded-full transition-all duration-500" style="width: <%= (missed.to_f / max_fuel * 100).round(0) %>%"></div>
             </div>
           </div>
@@ -127,7 +127,7 @@
               <span class="text-gray-400">Avg Climb</span>
               <span class="font-mono text-blue-400 font-semibold"><%= @summary.avg_climb_points.to_f.round(1) %> pts</span>
             </div>
-            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden" role="progressbar" aria-label="Average climb points: <%= @summary.avg_climb_points.to_f.round(1) %> out of 30">
+            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden" role="progressbar" aria-label="Average climb points: <%= @summary.avg_climb_points.to_f.round(1) %> out of 30" aria-valuenow="<%= @summary.avg_climb_points.to_f.round(1) %>" aria-valuemin="0" aria-valuemax="30" aria-valuetext="<%= @summary.avg_climb_points.to_f.round(1) %> out of 30 climb points">
               <div class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: <%= (@summary.avg_climb_points.to_f / 30 * 100).round(0) %>%"></div>
             </div>
           </div>
@@ -150,7 +150,7 @@
               <span class="text-gray-400">Average Rating</span>
               <span class="font-mono text-sky-400 font-semibold"><%= @summary.avg_defense_rating.present? ? @summary.avg_defense_rating.to_f.round(1) : "---" %><%= "/5" if @summary.avg_defense_rating.present? %></span>
             </div>
-            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden" role="progressbar" aria-label="Average defense rating: <%= defense_avg.round(1) %> out of 5">
+            <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden" role="progressbar" aria-label="Average defense rating: <%= defense_avg.round(1) %> out of 5" aria-valuenow="<%= defense_avg.round(1) %>" aria-valuemin="0" aria-valuemax="5" aria-valuetext="<%= defense_avg.round(1) %> out of 5 defense rating">
               <div class="h-full bg-sky-500 rounded-full transition-all duration-500" style="width: <%= (defense_avg / 5 * 100).round(0) %>%"></div>
             </div>
           </div>
@@ -159,7 +159,7 @@
               <span class="text-gray-400">Highest Rating Seen</span>
               <span class="font-mono text-white font-semibold"><%= defense_peak.positive? ? "#{defense_peak}/5" : "---" %></span>
             </div>
-            <p class="text-xs text-gray-500"><%= defense_entries.size %> rated scouting <%= defense_entries.size == 1 ? "entry" : "entries" %></p>
+            <p class="text-xs text-gray-400"><%= defense_entries.size %> rated scouting <%= defense_entries.size == 1 ? "entry" : "entries" %></p>
           </div>
           <div>
             <div class="flex items-center justify-between text-sm mb-1">
@@ -177,8 +177,8 @@
       <svg class="w-12 h-12 text-gray-700 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
-      <p class="text-gray-500 font-medium mb-1">Not enough data</p>
-      <p class="text-gray-600 text-sm mb-4">This team has not been scouted yet. Scout a match to see performance statistics.</p>
+      <p class="text-gray-400 font-medium mb-1">Not enough data</p>
+      <p class="text-gray-400 text-sm mb-4">This team has not been scouted yet. Scout a match to see performance statistics.</p>
       <%= link_to "Scout This Team", new_scouting_entry_path(frc_team_id: @team.id), class: "btn-primary text-sm" %>
     </div>
   <% end %>
@@ -200,31 +200,31 @@
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         <div class="bg-gray-800 rounded-lg p-3 text-center">
           <p class="text-sm font-bold text-white"><%= @pit_entry.drivetrain %></p>
-          <p class="text-xs text-gray-500 mt-1">Drivetrain</p>
+          <p class="text-xs text-gray-400 mt-1">Drivetrain</p>
         </div>
         <% if @pit_entry.robot_weight %>
           <div class="bg-gray-800 rounded-lg p-3 text-center">
             <p class="text-sm font-bold text-white"><%= @pit_entry.robot_weight %> lbs</p>
-            <p class="text-xs text-gray-500 mt-1">Weight</p>
+            <p class="text-xs text-gray-400 mt-1">Weight</p>
           </div>
         <% end %>
         <% if @pit_entry.robot_width && @pit_entry.robot_length %>
           <div class="bg-gray-800 rounded-lg p-3 text-center">
             <p class="text-sm font-bold text-white"><%= @pit_entry.robot_width %>&times;<%= @pit_entry.robot_length %>"</p>
-            <p class="text-xs text-gray-500 mt-1">W &times; L</p>
+            <p class="text-xs text-gray-400 mt-1">W &times; L</p>
           </div>
         <% end %>
         <% if @pit_entry.robot_height %>
           <div class="bg-gray-800 rounded-lg p-3 text-center">
             <p class="text-sm font-bold text-white"><%= @pit_entry.robot_height %>"</p>
-            <p class="text-xs text-gray-500 mt-1">Height</p>
+            <p class="text-xs text-gray-400 mt-1">Height</p>
           </div>
         <% end %>
       </div>
 
       <% if @pit_entry.intake_types.any? %>
         <div class="mb-3">
-          <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Intake</p>
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Intake</p>
           <div class="flex flex-wrap gap-1.5">
             <% @pit_entry.intake_types.each do |type| %>
               <span class="px-2 py-1 bg-orange-500/10 text-orange-400 text-xs rounded-md border border-orange-500/20"><%= type.humanize.titleize %></span>
@@ -238,7 +238,7 @@
 
       <% if @pit_entry.shooter_types.any? %>
         <div class="mb-3">
-          <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Shooter</p>
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Shooter</p>
           <div class="flex flex-wrap gap-1.5">
             <% @pit_entry.shooter_types.each do |type| %>
               <span class="px-2 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-md border border-blue-500/20"><%= type %></span>
@@ -249,7 +249,7 @@
 
       <% if @pit_entry.climber_levels.any? %>
         <div class="mb-3">
-          <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Climber</p>
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Climber</p>
           <div class="flex flex-wrap gap-1.5">
             <% @pit_entry.climber_levels.each do |level| %>
               <span class="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-md border border-emerald-500/20"><%= level %></span>
@@ -326,7 +326,7 @@
     </div>
   <% else %>
     <div class="bg-gray-900 border border-gray-800 border-dashed rounded-xl p-6 mb-6 text-center">
-      <p class="text-gray-500 text-sm mb-2">No pit scouting data for this team yet.</p>
+      <p class="text-gray-400 text-sm mb-2">No pit scouting data for this team yet.</p>
       <%= link_to "Scout This Team's Pit", new_pit_scouting_entry_path(frc_team_id: @team.id), class: "text-sm text-orange-400 hover:text-orange-300 transition" %>
     </div>
   <% end %>
@@ -369,6 +369,7 @@
     <% if @entries.any? %>
       <div class="overflow-x-auto">
         <table class="data-table">
+          <caption class="sr-only">Scouting entries for team <%= @team.team_number %> by match</caption>
           <thead>
             <tr class="border-b border-gray-800">
               <th scope="col" class="text-left">Match</th>
@@ -404,7 +405,7 @@
         <svg class="w-10 h-10 text-gray-700 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
-        <p class="text-gray-500 text-sm font-medium mb-1">No scouting entries for this team yet</p>
+        <p class="text-gray-400 text-sm font-medium mb-1">No scouting entries for this team yet</p>
         <%= link_to "Scout This Team", new_scouting_entry_path(frc_team_id: @team.id), class: "text-sm text-orange-400 hover:text-orange-300 transition-colors duration-150 font-medium" %>
       </div>
     <% end %>

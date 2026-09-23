@@ -8,7 +8,7 @@ class EventPolicy < ApplicationPolicy
   end
 
   def select?
-    true
+    user.present?
   end
 
   def create?

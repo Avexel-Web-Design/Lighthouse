@@ -18,14 +18,22 @@ class ApplicationController < ActionController::Base
   helper_method :current_event
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
+  rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
+  rescue_from ActionController::InvalidAuthenticityToken, with: :invalid_authenticity_token
 
   private
 
   # Returns the currently selected event from the session, or nil.
+  # Clears a stale session value when the event no longer exists.
   def current_event
     return @current_event if defined?(@current_event)
 
-    @current_event = session[:current_event_id].present? ? Event.find_by(id: session[:current_event_id]) : nil
+    event_id = session[:current_event_id]
+    if event_id.present?
+      @current_event = Event.find_by(id: event_id)
+      session.delete(:current_event_id) if @current_event.nil?
+    end
+    @current_event
   end
 
   # Before action to enforce that an event is selected.
@@ -41,8 +49,28 @@ class ApplicationController < ActionController::Base
   end
 
   def user_not_authorized
-    flash[:alert] = "You are not authorized to perform this action."
-    redirect_back(fallback_location: root_path)
+    if request.format.json?
+      render json: { error: "You are not authorized to perform this action." }, status: :forbidden
+    else
+      flash[:alert] = "You are not authorized to perform this action."
+      redirect_back(fallback_location: root_path)
+    end
+  end
+
+  def record_not_found
+    if request.format.json?
+      render json: { error: "Record not found." }, status: :not_found
+    else
+      redirect_back fallback_location: root_path, alert: "Record not found."
+    end
+  end
+
+  def invalid_authenticity_token
+    if request.format.json?
+      render json: { error: "Invalid authenticity token. Please reload and try again." }, status: :forbidden
+    else
+      redirect_back fallback_location: root_path, alert: "Invalid authenticity token. Please reload and try again."
+    end
   end
 
   def pundit_verify

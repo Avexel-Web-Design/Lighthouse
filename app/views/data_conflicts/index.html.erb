@@ -19,7 +19,7 @@
               &middot;
               <span class="text-gray-400"><%= conflict.match.display_name %></span>
             </h3>
-            <p class="text-xs text-gray-500 mt-0.5">
+            <p class="text-xs text-gray-400 mt-0.5">
               Field: <span class="text-amber-400 font-mono"><%= conflict.field_name %></span>
               &middot; Detected <%= time_ago_in_words(conflict.created_at) %> ago
             </p>
@@ -35,21 +35,22 @@
         <%# Conflicting Values %>
         <div class="px-4 sm:px-6 py-4">
           <p class="text-xs text-gray-400 uppercase tracking-wider mb-3 font-medium">Conflicting Values from Scouts</p>
-          <% entries_by_user = conflict.conflicting_entries.index_by(&:user_id) %>
+          <% preloaded = @entries_by_conflict&.dig(conflict.id) || conflict.conflicting_entries.to_a %>
+          <% entries_by_user = preloaded.index_by(&:user_id) %>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
             <% (conflict.values || {}).each do |scout_id, value| %>
-              <% scout = User.find_by(id: scout_id) %>
               <% entry = entries_by_user[scout_id.to_i] %>
+              <% scout = entry&.user || @users_by_id&.dig(scout_id.to_i) || User.find_by(id: scout_id) %>
               <div class="bg-gray-800 rounded-lg p-3 border border-gray-700 hover:border-gray-600 transition-colors duration-150 group">
                 <div class="flex items-center justify-between gap-2 mb-1">
-                  <p class="text-xs text-gray-500"><%= scout&.full_name || "Scout ##{scout_id}" %></p>
+                  <p class="text-xs text-gray-400"><%= scout&.full_name || "Scout ##{scout_id}" %></p>
                   <% if entry %>
                     <span class="<%= entry.status_badge_class %> text-[10px]"><%= entry.status_label %></span>
                   <% end %>
                 </div>
                 <p class="text-lg font-bold text-white font-mono"><%= value %></p>
                 <% if entry %>
-                  <p class="mt-1 text-xs text-gray-500"><%= entry.total_points %> pts &middot; <%= link_to "View entry", scouting_entry_path(entry), class: "text-orange-400 hover:text-orange-300" %></p>
+                  <p class="mt-1 text-xs text-gray-400"><%= entry.total_points %> pts &middot; <%= link_to "View entry", scouting_entry_path(entry), class: "text-orange-400 hover:text-orange-300" %></p>
                 <% end %>
                 <%# Quick-select button %>
                 <div class="mt-2 grid grid-cols-1 gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
@@ -77,7 +78,7 @@
               <input type="text" name="resolution" id="resolution_<%= conflict.id %>" required
                      class="input-field text-sm font-mono"
                      placeholder="Enter the correct value...">
-              <p class="mt-1 text-xs text-gray-600">This value is written back into the conflicting scouting entries for this team and match.</p>
+              <p class="mt-1 text-xs text-gray-400">This value is written back into the conflicting scouting entries for this team and match.</p>
             </div>
 
             <div>
@@ -88,7 +89,7 @@
                   <option value="<%= entry.id %>"><%= entry.user.full_name %> &middot; Team <%= entry.frc_team.team_number %></option>
                 <% end %>
               </select>
-              <p class="mt-1 text-xs text-gray-600">Use this when a flagged entry should still count as valid scouting coverage.</p>
+              <p class="mt-1 text-xs text-gray-400">Use this when a flagged entry should still count as valid scouting coverage.</p>
             </div>
 
             <button type="submit" class="btn-primary whitespace-nowrap">
@@ -105,6 +106,6 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
     <p class="text-gray-400 font-medium">No Data Conflicts</p>
-    <p class="text-gray-600 text-sm mt-1">All scouting data is consistent.</p>
+    <p class="text-gray-400 text-sm mt-1">All scouting data is consistent.</p>
   </div>
 <% end %>

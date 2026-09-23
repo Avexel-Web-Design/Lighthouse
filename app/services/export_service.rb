@@ -12,44 +12,52 @@ class ExportService
     @aggregation_service = AggregationService.new(event)
   end
 
+  # Single fetch shared by to_csv / to_pdf on the same instance
+  # (was: one aggregate_all_teams query per format).
+  def aggregations
+    @aggregations ||= @aggregation_service.aggregate_all_teams
+  end
+
   # Exports team summary data as a CSV string.
   def to_csv
-    aggregations = @aggregation_service.aggregate_all_teams
-
     CSV.generate(headers: true) do |csv|
       csv << CSV_HEADERS
 
       aggregations.each_with_index do |agg, index|
-        team = agg[:frc_team]
-        csv << [
-          index + 1,
-          team.team_number,
-          team.nickname,
-          agg[:avg_fuel_made],
-          agg[:avg_fuel_missed],
-          agg[:fuel_accuracy_pct],
-          agg[:avg_climb_points],
-          agg[:avg_total_points],
-          agg[:stddev_total_points],
-          agg[:matches_scouted],
-          agg[:confidence]
-        ]
+        csv << summary_row(agg, index)
       end
     end
   end
 
   # Generates a PDF report with team rankings using Prawn.
   def to_pdf
-    aggregations = @aggregation_service.aggregate_all_teams
+    rows = aggregations
 
     Prawn::Document.new(page_size: "LETTER", page_layout: :landscape) do |pdf|
       render_header(pdf)
-      render_table(pdf, aggregations)
+      render_table(pdf, rows)
       render_footer(pdf)
     end.render
   end
 
   private
+
+  def summary_row(agg, index)
+    team = agg[:frc_team]
+    [
+      index + 1,
+      team.team_number,
+      team.nickname,
+      agg[:avg_fuel_made],
+      agg[:avg_fuel_missed],
+      agg[:fuel_accuracy_pct],
+      agg[:avg_climb_points],
+      agg[:avg_total_points],
+      agg[:stddev_total_points],
+      agg[:matches_scouted],
+      agg[:confidence]
+    ]
+  end
 
   def render_header(pdf)
     pdf.text "Lighthouse - Team Rankings", size: 20, style: :bold

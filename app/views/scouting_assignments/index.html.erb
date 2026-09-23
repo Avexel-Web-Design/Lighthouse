@@ -26,9 +26,9 @@
         </svg>
         <div>
           <h2 class="text-sm font-semibold text-white">Bulk Assignment Manager</h2>
-          <p class="text-xs text-gray-500 mt-0.5">Pick scouts from the checklist, then assign or clear a match range.</p>
+          <p class="text-xs text-gray-400 mt-0.5">Pick scouts from the checklist, then assign or clear a match range.</p>
         </div>
-        <svg class="w-4 h-4 text-gray-500 ml-auto transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 text-gray-400 ml-auto transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
         </svg>
       </summary>
@@ -43,7 +43,7 @@
                   <label class="flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-900/70 px-3 py-2 text-sm text-gray-300 cursor-pointer transition hover:border-gray-700 has-[:checked]:border-orange-500/40 has-[:checked]:bg-orange-500/10 has-[:checked]:text-orange-200">
                     <%= check_box_tag "user_ids[]", user.id, false, class: "h-4 w-4 rounded border-gray-600 bg-gray-900 text-orange-500 focus:ring-orange-500" %>
                     <span class="font-medium"><%= user.full_name %></span>
-                    <span class="ml-auto text-[10px] uppercase tracking-wide text-gray-500"><%= user.role.humanize %></span>
+                    <span class="ml-auto text-[10px] uppercase tracking-wide text-gray-400"><%= user.role.humanize %></span>
                   </label>
                 <% end %>
               </div>
@@ -86,13 +86,13 @@
       <div class="scout-card overflow-hidden">
         <div class="overflow-x-auto">
           <table class="min-w-max w-full text-xs">
+            <caption class="sr-only">Scouting assignment grid by scout and qualification match with coverage counts</caption>
             <thead>
               <tr class="border-b border-gray-800">
-                <th class="sticky left-0 z-20 bg-gray-900 text-left p-2 text-gray-400 uppercase tracking-wider min-w-28">Scout</th>
+                <th scope="col" class="sticky left-0 z-20 bg-gray-900 text-left p-2 text-gray-400 uppercase tracking-wider min-w-28">Scout</th>
                 <% @matches.each do |match| %>
-                  <% count = @coverage_counts[match.id].to_i %>
-                  <th class="p-2 min-w-[4.5rem] border-l border-gray-800 text-center">
-                    <%= render "coverage_header", match: match, count: count %>
+                  <th scope="col" class="p-2 min-w-[4.5rem] border-l border-gray-800 text-center">
+                    <%= render "coverage_header", match: match, count: @coverage_counts[match.id].to_i %>
                   </th>
                 <% end %>
               </tr>
@@ -102,7 +102,7 @@
                 <tr class="border-b border-gray-800/60">
                   <td class="sticky left-0 z-10 bg-gray-900 p-2 border-r border-gray-800">
                     <div class="font-semibold text-white whitespace-nowrap"><%= user.full_name %></div>
-                    <div class="text-[10px] text-gray-500"><%= user.role.humanize %></div>
+                    <div class="text-[10px] text-gray-400"><%= user.role.humanize %></div>
                   </td>
 
                   <% @matches.each do |match| %>
@@ -130,7 +130,7 @@
   <% else %>
     <div class="scout-card p-8 text-center">
       <p class="text-gray-300 font-medium">No qualification matches available</p>
-      <p class="text-sm text-gray-500 mt-1">Sync the event from TBA first, then build the schedule timeline.</p>
+      <p class="text-sm text-gray-400 mt-1">Sync the event from TBA first, then build the schedule timeline.</p>
     </div>
   <% end %>
 </div>

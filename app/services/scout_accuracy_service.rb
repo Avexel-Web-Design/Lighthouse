@@ -54,39 +54,39 @@ class ScoutAccuracyService
   # Uses every counted entry on scored matches, including partially scouted
   # alliances. Each entry is compared against an equal-share expected score for
   # that alliance (actual alliance score divided by alliance team count).
+  # Equal-share is a deliberate approximation: without per-robot breakdowns
+  # in official scores, even contribution is the only neutral baseline.
   def compute_accuracy
-    results = {}
+    results = Hash.new { |h, k| h[k] = { total_error: 0.0, match_count: 0 } }
 
     matches_with_scores = @event.matches.with_scores.includes(
-      match_alliances: :frc_team,
-      scouting_entries: :user
+      :match_alliances, :scouting_entries
     )
 
-    matches_with_scores.each do |match|
+    matches_with_scores.find_each do |match|
+      alliances_by_color = match.match_alliances.group_by(&:alliance_color)
+      entries_by_team = match.scouting_entries.group_by(&:frc_team_id)
+
       %w[red blue].each do |color|
         actual_score = color == "red" ? match.red_score : match.blue_score
         next unless actual_score
 
-        # Get the teams on this alliance
-        alliance_teams = match.match_alliances.select { |ma| ma.alliance_color == color }
-        team_ids = alliance_teams.map(&:frc_team_id)
+        team_ids = alliances_by_color.fetch(color, []).map(&:frc_team_id)
         next if team_ids.empty?
 
         expected_points_per_team = actual_score.to_f / team_ids.size
 
-        # Find counted scouting entries for teams on this alliance
-        entries = match.scouting_entries.select do |e|
-          e.counted? && team_ids.include?(e.frc_team_id)
-        end
-
         # Score each counted entry independently so partial alliances count.
-        entries.each do |entry|
-          user_id = entry.user_id
-          entry_error = (entry.total_points - expected_points_per_team).abs
+        team_ids.each do |team_id|
+          Array(entries_by_team[team_id]).each do |entry|
+            next unless entry.counted?
 
-          results[user_id] ||= { total_error: 0, match_count: 0 }
-          results[user_id][:total_error] += entry_error
-          results[user_id][:match_count] += 1
+            entry_error = (entry.total_points - expected_points_per_team).abs
+
+            bucket = results[entry.user_id]
+            bucket[:total_error] += entry_error
+            bucket[:match_count] += 1
+          end
         end
       end
     end

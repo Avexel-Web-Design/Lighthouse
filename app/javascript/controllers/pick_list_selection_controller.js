@@ -102,7 +102,7 @@ export default class extends Controller {
 
   #emptyState() {
     const text = document.createElement("p")
-    text.className = "text-sm text-gray-500"
+    text.className = "text-sm text-gray-400"
     text.textContent = "No teams selected yet."
     return text
   }

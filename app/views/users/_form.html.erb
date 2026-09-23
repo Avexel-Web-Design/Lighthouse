@@ -30,12 +30,12 @@
       <%= f.label :password, class: "block text-sm font-medium text-gray-300 mb-1" %>
       <%= f.password_field :password, class: "input-field", placeholder: user.persisted? ? "Leave blank to keep current" : "Password", autocomplete: "new-password" %>
       <% if user.persisted? %>
-        <p class="text-xs text-gray-500 mt-1">Leave blank to keep current password</p>
+        <p class="text-xs text-gray-400 mt-1">Leave blank to keep current password</p>
       <% end %>
     </div>
   </div>
 
-  <p class="text-xs text-gray-500">Users sign in with their full name (e.g. "Gavin Moceri") and password.</p>
+  <p class="text-xs text-gray-400">Users sign in with their full name (e.g. "Gavin Moceri") and password.</p>
 
   <div class="flex items-center gap-3 pt-2">
     <%= f.submit user.persisted? ? "Update User" : "Create User", class: "btn-primary px-6 py-2.5 cursor-pointer" %>

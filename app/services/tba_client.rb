@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
-class TbaClient
+class TbaClient < BaseApiClient
   BASE_URL = "https://www.thebluealliance.com/api/v3"
   CACHE_TTL = 5.minutes
+  LOG_PREFIX = "TbaClient"
 
   def self.configured?
     ENV["TBA_API_KEY"].present?
@@ -10,7 +11,10 @@ class TbaClient
 
   def initialize(api_key: ENV["TBA_API_KEY"])
     @api_key = api_key
-    @conn = build_connection
+    @conn = self.class.build_connection(
+      base_url: BASE_URL,
+      headers: { "X-TBA-Auth-Key" => @api_key, "Accept" => "application/json" }
+    )
   end
 
   # GET /event/{event_key}
@@ -40,35 +44,12 @@ class TbaClient
 
   private
 
-  def build_connection
-    Faraday.new(url: BASE_URL) do |f|
-      f.headers["X-TBA-Auth-Key"] = @api_key
-      f.headers["Accept"] = "application/json"
-      f.request :retry, max: 3, interval: 0.5, backoff_factor: 2,
-                        exceptions: [ Faraday::TimeoutError, Faraday::ConnectionFailed ]
-      f.response :json, parser_options: { symbolize_names: false }
-      f.adapter Faraday.default_adapter
-    end
-  end
-
-  def cached_get(cache_key, path)
+  def cached_get(cache_key, path, params = {})
     unless self.class.configured?
-      Rails.logger.warn("[TbaClient] Missing TBA_API_KEY; skipping #{path}")
+      Rails.logger.warn("[#{LOG_PREFIX}] Missing TBA_API_KEY; skipping #{path}")
       return nil
     end
 
-    Rails.cache.fetch(cache_key, expires_in: CACHE_TTL) do
-      response = @conn.get("#{BASE_URL}#{path}")
-
-      if response.success?
-        response.body
-      else
-        Rails.logger.warn("[TbaClient] #{path} returned #{response.status}: #{response.body}")
-        nil
-      end
-    end
-  rescue Faraday::Error => e
-    Rails.logger.error("[TbaClient] Request to #{path} failed: #{e.message}")
-    nil
+    super(cache_key, path, params, expires_in: CACHE_TTL, log_prefix: LOG_PREFIX)
   end
 end

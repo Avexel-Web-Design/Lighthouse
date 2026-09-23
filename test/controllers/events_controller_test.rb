@@ -93,12 +93,8 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     assert_difference("Event.count", 1) do
       post events_path, params: {
         event: {
-          name: "Test Regional",
-          tba_key: "2026testcreate",
           year: 2026,
-          start_date: "2026-03-01",
-          end_date: "2026-03-03",
-          event_type: 0
+          event_code: "testcreate"
         }
       }
     end

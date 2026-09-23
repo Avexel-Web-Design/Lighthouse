@@ -1,5 +1,3 @@
-require "webpush"
-
 class PushNotificationService
   def initialize(user)
     @user = user
@@ -27,6 +25,8 @@ class PushNotificationService
   attr_reader :user
 
   def send_payload_to_subscriptions(payload)
+    return false unless vapid_configured?
+
     delivered = false
 
     user.web_push_subscriptions.find_each do |subscription|
@@ -64,9 +64,13 @@ class PushNotificationService
 
   def vapid_options
     {
-      subject: ENV.fetch("VAPID_SUBJECT", "mailto:scouting@lighthouse.local"),
-      public_key: ENV.fetch("VAPID_PUBLIC_KEY"),
-      private_key: ENV.fetch("VAPID_PRIVATE_KEY")
+      subject: ENV["VAPID_SUBJECT"].presence || "mailto:scouting@lighthouse.local",
+      public_key: ENV["VAPID_PUBLIC_KEY"],
+      private_key: ENV["VAPID_PRIVATE_KEY"]
     }
+  end
+
+  def vapid_configured?
+    ENV["VAPID_PUBLIC_KEY"].present? && ENV["VAPID_PRIVATE_KEY"].present?
   end
 end

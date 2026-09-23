@@ -16,7 +16,7 @@ class PredictionServiceWeightsTest < ActiveSupport::TestCase
         event: @event,
         frc_team: team,
         user: users(:admin_user),
-        match: nil,
+        match: @event.matches.create!(comp_level: "qm", match_number: 101 + i, set_number: 1),
         scouting_mode: :replay,
         status: :approved,
         client_uuid: "prediction-approved-#{i}",

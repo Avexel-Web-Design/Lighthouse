@@ -10,6 +10,21 @@ export default class extends Controller {
   connect() {
     this.currentCol = null
     this.ascending = true
+    this.element.querySelectorAll("th[data-col]").forEach(header => {
+      header.tabIndex = 0
+      header.setAttribute("aria-sort", "none")
+    })
+    this._keydown = event => {
+      const header = event.target.closest("th[data-col]")
+      if (!header || !["Enter", " "].includes(event.key)) return
+      event.preventDefault()
+      this.sort({ currentTarget: header })
+    }
+    this.element.addEventListener("keydown", this._keydown)
+  }
+
+  disconnect() {
+    this.element.removeEventListener("keydown", this._keydown)
   }
 
   sort(event) {
@@ -24,13 +39,16 @@ export default class extends Controller {
       this.ascending = true
     }
 
-    // Update header indicators
+    // Update header indicators + aria-sort (not color/icon-only)
     this.element.querySelectorAll("th[data-col]").forEach(header => {
       const arrow = header.querySelector("[data-sort-arrow]")
+      const isActive = parseInt(header.dataset.col, 10) === col
+      header.setAttribute("aria-sort", isActive ? (this.ascending ? "ascending" : "descending") : "none")
       if (!arrow) return
-      if (parseInt(header.dataset.col, 10) === col) {
+      if (isActive) {
         arrow.textContent = this.ascending ? " ▲" : " ▼"
         arrow.classList.remove("invisible")
+        arrow.setAttribute("aria-hidden", "true")
       } else {
         arrow.textContent = " ▲"
         arrow.classList.add("invisible")

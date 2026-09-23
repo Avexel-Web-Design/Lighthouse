@@ -42,11 +42,12 @@ class MatchAllianceTest < ActiveSupport::TestCase
   end
 
   test "same team can be in different matches" do
-    # team_6328 plays in qm2/qm3/qm4 but not qm1, and qm1 blue only has station 1,
-    # so this combination violates neither uniqueness index.
+    # Fresh match isolates the test from fixture changes; the new (match, team)
+    # and (match, color, station) combinations violate neither uniqueness index.
+    match = events(:championship).matches.create!(comp_level: "qm", match_number: 101, set_number: 1)
     alliance = MatchAlliance.new(
-      match: matches(:qm1),
-      frc_team: frc_teams(:team_6328),
+      match: match,
+      frc_team: frc_teams(:team_4414),
       alliance_color: "blue",
       station: 2
     )
