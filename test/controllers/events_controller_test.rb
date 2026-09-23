@@ -54,6 +54,18 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
 
   # --- New ---
 
+  test "edit and invalid update preserve every supported event type" do
+    Event.event_types.each_key do |type|
+      @event.update!(event_type: type)
+      get edit_event_path(@event)
+      assert_response :success
+      assert_select "select[name='event[event_type]'] option[selected][value='#{type}']", count: 1
+      patch event_path(@event), params: { event: { name: "", event_type: type } }
+      assert_response :unprocessable_entity
+      assert_select "select[name='event[event_type]'] option[selected][value='#{type}']", count: 1
+    end
+  end
+
   test "admin should get new" do
     get new_event_path
     assert_response :success

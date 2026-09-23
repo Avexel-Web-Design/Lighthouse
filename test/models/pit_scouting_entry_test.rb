@@ -48,7 +48,7 @@ class PitScoutingEntryTest < ActiveSupport::TestCase
   # --- Enums ---
 
   test "status enum values" do
-    assert_equal({ "submitted" => 0, "flagged" => 1, "rejected" => 2 }, PitScoutingEntry.statuses)
+    assert_equal({ "submitted" => 0, "flagged" => 1, "rejected" => 2, "approved" => 3 }, PitScoutingEntry.statuses)
   end
 
   test "pit_254 is submitted" do

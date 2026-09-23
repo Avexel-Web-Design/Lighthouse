@@ -41,6 +41,12 @@ class GameConfigTest < ActiveSupport::TestCase
     assert_equal game_configs(:reefscape_2026), GameConfig.current
   end
 
+  test "a newer active season can coexist with an older active config" do
+    newer = GameConfig.create!(year: 2027, game_name: "Next season", active: true)
+    assert_equal newer, GameConfig.current
+    assert game_configs(:reefscape_2026).update(game_name: "Previous season")
+  end
+
   test "current returns nil when no active configs" do
     GameConfig.update_all(active: false)
     assert_nil GameConfig.current

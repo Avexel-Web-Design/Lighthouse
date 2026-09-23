@@ -11,6 +11,15 @@ class Match < ApplicationRecord
 
   # Scopes
   COMP_LEVEL_ORDER = { "qm" => 0, "ef" => 1, "qf" => 2, "sf" => 3, "f" => 4 }.freeze
+  COMP_LEVELS = COMP_LEVEL_ORDER.keys.freeze
+
+  # Validations (mirror DB constraints: UNIQUE(tba_key) and
+  # UNIQUE(event, comp_level, set_number, match_number))
+  validates :comp_level, presence: true, inclusion: { in: COMP_LEVELS }
+  validates :match_number, presence: true, numericality: { only_integer: true, greater_than: 0, allow_nil: true }
+  validates :set_number, numericality: { only_integer: true, greater_than: 0, allow_nil: true }
+  validates :tba_key, uniqueness: true, allow_nil: true
+  validates :match_number, uniqueness: { scope: %i[event_id comp_level set_number] }
 
   scope :with_scores, -> { where.not(red_score: nil, blue_score: nil) }
 

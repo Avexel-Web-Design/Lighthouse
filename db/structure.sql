@@ -719,7 +719,7 @@ CREATE MATERIALIZED VIEW public.team_event_summaries AS
     avg(NULLIF(COALESCE(((data ->> 'defense_rating'::text))::numeric, (0)::numeric), (0)::numeric)) AS avg_defense_rating,
     max(updated_at) AS last_updated
    FROM public.scouting_entries
-   WHERE (status = ANY (ARRAY[0, 3]))
+  WHERE (status = ANY (ARRAY[0, 3]))
   GROUP BY event_id, frc_team_id
   WITH NO DATA;
 
@@ -1104,6 +1104,13 @@ ALTER TABLE ONLY public.web_push_subscriptions
 
 
 --
+-- Name: idx_data_conflicts_event_resolved; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_data_conflicts_event_resolved ON public.data_conflicts USING btree (event_id, resolved);
+
+
+--
 -- Name: idx_data_conflicts_unique; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1115,6 +1122,13 @@ CREATE UNIQUE INDEX idx_data_conflicts_unique ON public.data_conflicts USING btr
 --
 
 CREATE UNIQUE INDEX idx_match_alliances_unique_station ON public.match_alliances USING btree (match_id, alliance_color, station);
+
+
+--
+-- Name: idx_matches_event_comp_set_number; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_matches_event_comp_set_number ON public.matches USING btree (event_id, comp_level, set_number, match_number);
 
 
 --
@@ -1132,6 +1146,20 @@ CREATE UNIQUE INDEX idx_scouting_assignments_unique ON public.scouting_assignmen
 
 
 --
+-- Name: idx_scouting_entries_event_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_scouting_entries_event_status ON public.scouting_entries USING btree (event_id, status);
+
+
+--
+-- Name: idx_scouting_entries_event_team_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_scouting_entries_event_team_created ON public.scouting_entries USING btree (event_id, frc_team_id, created_at);
+
+
+--
 -- Name: idx_scouting_entries_unique; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1143,13 +1171,6 @@ CREATE UNIQUE INDEX idx_scouting_entries_unique ON public.scouting_entries USING
 --
 
 CREATE UNIQUE INDEX idx_team_event_summaries ON public.team_event_summaries USING btree (event_id, frc_team_id);
-
-
---
--- Name: idx_web_push_subscriptions_user_endpoint; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_web_push_subscriptions_user_endpoint ON public.web_push_subscriptions USING btree (user_id, endpoint);
 
 
 --
@@ -1489,6 +1510,13 @@ CREATE UNIQUE INDEX index_users_on_email ON public.users USING btree (email);
 
 
 --
+-- Name: index_users_on_lower_username; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_users_on_lower_username ON public.users USING btree (lower((username)::text));
+
+
+--
 -- Name: index_users_on_reset_password_token; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1771,6 +1799,7 @@ ALTER TABLE ONLY public.predictions
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260316000000'),
 ('20260315103000'),
 ('20260310120000'),
 ('20260306100100'),

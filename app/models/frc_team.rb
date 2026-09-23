@@ -12,6 +12,7 @@ class FrcTeam < ApplicationRecord
 
   # Validations
   validates :team_number, presence: true, uniqueness: true
+  validates :team_number, numericality: { only_integer: true, greater_than: 0, allow_nil: true }
 
   # Scopes
   scope :at_event, ->(event) {

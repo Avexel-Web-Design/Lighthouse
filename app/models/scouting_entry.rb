@@ -18,29 +18,37 @@ class ScoutingEntry < ApplicationRecord
   scope :counted, -> { where(status: counted_status_values) }
 
   # Validations
+  # client_uuid is globally unique when present; NULLs dedupe via LWW in the
+  # sync/import endpoints (Postgres treats NULLs as distinct, matching
+  # allow_nil here). Blank strings normalize to nil so two "absent" uuids
+  # never collide on the unique index.
+  normalizes :client_uuid, with: ->(uuid) { uuid.presence }
   validates :client_uuid, uniqueness: true, allow_nil: true
+  # match_id is nullable (match-less entries); NULL match_ids skip this check
+  # (as does the DB unique index, which treats NULLs as distinct), while
+  # LWW on client_uuid remains the dedup path for those rows.
   validates :match_id, uniqueness: { scope: %i[event_id frc_team_id user_id scouting_mode] }, allow_nil: true
 
   # Callbacks
-  after_create_commit -> {
-    broadcast_prepend_to(
-      "scouting_entries_event_#{event_id}",
-      target: "scouting_entries",
-      partial: "scouting_entries/scouting_entry",
-      locals: { scouting_entry: self }
-    )
-  }
+  after_create_commit :broadcast_prepend_entry
+  after_update_commit :broadcast_replace_entry
+  after_destroy_commit :broadcast_remove_entry
+  # Safety net so every mutation path (web UI, offline sync, QR import,
+  # conflict resolution, console) refreshes aggregates. Single-record
+  # controller actions rely on this callback; bulk sync endpoints enqueue one
+  # job per event on top, which is idempotent, so overlap is harmless.
+  after_commit :enqueue_summary_refresh, on: %i[create update destroy]
 
   # --- Computed methods reading from JSONB data column ---
 
   # Total fuel scored across auton and teleop.
   def total_fuel_made
-    dig_int("auton_fuel_made") + dig_int("teleop_fuel_made") + dig_int("endgame_fuel_made")
+    (dig_int("auton_fuel_made") || 0) + (dig_int("teleop_fuel_made") || 0) + (dig_int("endgame_fuel_made") || 0)
   end
 
   # Total fuel missed across auton and teleop.
   def total_fuel_missed
-    dig_int("auton_fuel_missed") + dig_int("teleop_fuel_missed") + dig_int("endgame_fuel_missed")
+    (dig_int("auton_fuel_missed") || 0) + (dig_int("teleop_fuel_missed") || 0) + (dig_int("endgame_fuel_missed") || 0)
   end
 
   # Fuel accuracy as a percentage (0-100). Returns 0.0 when no attempts.
@@ -65,7 +73,7 @@ class ScoutingEntry < ApplicationRecord
 
   # Auton points for this entry (auton fuel + auton climb bonus)
   def auton_points
-    pts = dig_int("auton_fuel_made") * FUEL_POINT_VALUE
+    pts = (dig_int("auton_fuel_made") || 0) * FUEL_POINT_VALUE
     pts += AUTON_CLIMB_POINTS if ActiveModel::Type::Boolean.new.cast(data&.dig("auton_climb"))
     pts
   end
@@ -80,7 +88,7 @@ class ScoutingEntry < ApplicationRecord
 
   # Defence rating (1-5, 0 means not rated)
   def defense_rating
-    dig_int("defense_rating")
+    dig_int("defense_rating") || 0
   end
 
   # Returns the array of autonomous actions from the JSONB data
@@ -149,8 +157,44 @@ class ScoutingEntry < ApplicationRecord
 
   private
 
-  # Safely dig an integer value from the JSONB data hash
+  def broadcast_prepend_entry
+    broadcast_prepend_to(
+      "scouting_entries_event_#{event_id}",
+      target: "scouting_entries",
+      partial: "scouting_entries/scouting_entry",
+      locals: { scouting_entry: self }
+    )
+  end
+
+  def broadcast_replace_entry
+    broadcast_replace_to(
+      "scouting_entries_event_#{event_id}",
+      target: "scouting_entry_#{id}",
+      partial: "scouting_entries/scouting_entry",
+      locals: { scouting_entry: self }
+    )
+  end
+
+  def broadcast_remove_entry
+    broadcast_remove_to(
+      "scouting_entries_event_#{event_id}",
+      target: "scouting_entry_#{id}"
+    )
+  end
+
+  def enqueue_summary_refresh
+    RefreshSummariesJob.perform_later(event_id)
+  end
+
+  # Safely dig an integer value from the JSONB data hash. Returns nil for
+  # missing or non-integer values instead of coercing with to_i, which hides
+  # bad data ("abc".to_i == 0). Callers default nil to 0 where a number is
+  # required for arithmetic.
   def dig_int(key)
-    data&.dig(key).to_i
+    value = data&.dig(key)
+    return value if value.is_a?(Integer)
+    return value.to_i if value.is_a?(String) && value.match?(/\A-?\d+\z/)
+
+    nil
   end
 end

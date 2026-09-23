@@ -69,7 +69,7 @@ class QrImportsController < ApplicationController
           video_key: entry_params[:video_key].to_s.strip.first(255),
           video_type: entry_params[:video_type].to_s.strip.first(50)
         )
-          RefreshSummariesJob.perform_later(existing.event_id)
+          # RefreshSummariesJob is enqueued by the ScoutingEntry after_commit callback.
 
           render json: {
             status: "updated",
@@ -110,7 +110,7 @@ class QrImportsController < ApplicationController
 
       begin
         if entry.save
-          RefreshSummariesJob.perform_later(entry.event_id)
+          # RefreshSummariesJob is enqueued by the ScoutingEntry after_commit callback.
 
           render json: {
             status: "created",
