@@ -13,7 +13,7 @@ class DataConflict < ApplicationRecord
     event.scouting_entries
          .where(match: match, frc_team: frc_team)
          .where.not(status: :rejected)
-         .includes(:user)
+         .includes(:user, :frc_team)
          .order(:created_at)
   end
 end

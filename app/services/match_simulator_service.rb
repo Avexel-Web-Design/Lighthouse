@@ -6,29 +6,34 @@ class MatchSimulatorService
   # Fallback EPA when both scouting and Statbotics data are unavailable
   FALLBACK_EPA = 20.0
 
-  def initialize(event, statbotics: nil)
+  def initialize(event, statbotics: nil, rng: Random.new, iterations: ITERATIONS)
     @event = event
     @aggregation_service = AggregationService.new(event)
     @statbotics = statbotics
+    @rng = rng
+    @default_iterations = iterations
   end
 
   # Runs a Monte Carlo simulation for a hypothetical match.
   #
   # @param red_teams [Array<FrcTeam>] 3 teams on the red alliance
   # @param blue_teams [Array<FrcTeam>] 3 teams on the blue alliance
+  # @param iterations [Integer] Monte Carlo runs (defaults to constructor value)
+  # @param rng [#rand] injectable RNG for deterministic tests (defaults to constructor RNG)
   # @return [Hash] simulation results including per-team stats
-  def simulate(red_teams, blue_teams)
+  def simulate(red_teams, blue_teams, iterations: @default_iterations, rng: @rng)
+    iterations = iterations.to_i.clamp(1, 10_000)
     red_stats = red_teams.map { |t| team_stats(t) }
     blue_stats = blue_teams.map { |t| team_stats(t) }
 
-    red_wins = 0
-    blue_wins = 0
+    red_wins = 0.0
+    blue_wins = 0.0
     red_scores = []
     blue_scores = []
 
-    ITERATIONS.times do
-      red_score = red_stats.sum { |s| sample_score(s[:avg], s[:stddev]) }
-      blue_score = blue_stats.sum { |s| sample_score(s[:avg], s[:stddev]) }
+    iterations.times do
+      red_score = red_stats.sum { |s| sample_score(s[:avg], s[:stddev], rng) }
+      blue_score = blue_stats.sum { |s| sample_score(s[:avg], s[:stddev], rng) }
 
       red_scores << red_score
       blue_scores << blue_score
@@ -44,14 +49,14 @@ class MatchSimulatorService
       end
     end
 
-    red_avg = (red_scores.sum / ITERATIONS.to_f).round(2)
-    blue_avg = (blue_scores.sum / ITERATIONS.to_f).round(2)
+    red_avg = (red_scores.sum / iterations.to_f).round(2)
+    blue_avg = (blue_scores.sum / iterations.to_f).round(2)
 
     {
       red_avg: red_avg,
       blue_avg: blue_avg,
-      red_win_pct: (red_wins / ITERATIONS.to_f * 100).round(1),
-      blue_win_pct: (blue_wins / ITERATIONS.to_f * 100).round(1),
+      red_win_pct: (red_wins / iterations.to_f * 100).round(1),
+      blue_win_pct: (blue_wins / iterations.to_f * 100).round(1),
       margin_of_victory: (red_avg - blue_avg).abs.round(2),
       red_team_stats: red_stats,
       blue_team_stats: blue_stats
@@ -124,9 +129,10 @@ class MatchSimulatorService
 
   # Samples from a normal distribution using the Box-Muller transform.
   # Clamps the result to a minimum of 0 (no negative scores).
-  def sample_score(mean, stddev)
-    u1 = rand
-    u2 = rand
+  def sample_score(mean, stddev, rng = @rng)
+    u1 = rng.rand
+    u1 = Float::EPSILON if u1 <= 0
+    u2 = rng.rand
     z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math::PI * u2)
     [ mean + z * stddev, 0 ].max
   end

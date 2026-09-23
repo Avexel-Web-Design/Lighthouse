@@ -67,7 +67,8 @@ class PickListsControllerTest < ActionDispatch::IntegrationTest
     select_event(@event)
 
     get pick_list_path(@pick_list)
-    assert_response :not_found
+    # Scoped find misses scout's scope → RecordNotFound → redirect (ApplicationController#record_not_found)
+    assert_response :redirect
   end
 
   # --- New ---

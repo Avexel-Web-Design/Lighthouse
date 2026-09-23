@@ -11,4 +11,6 @@ pin "chartkick", to: "chartkick.js"
 pin "Chart.bundle", to: "Chart.bundle.js"
 pin "jsqr" # @1.4.0
 pin "lib/qr_payload", to: "lib/qr_payload.js"
+pin "lib/selection", to: "lib/selection.js"
+pin "lib/toast", to: "lib/toast.js"
 pin "qrcode" # @1.5.4

@@ -1,5 +1,7 @@
 class EventsController < ApplicationController
   MAX_MANIFEST_URLS = 500
+  MIN_EVENT_YEAR = 1992
+  EVENT_CODE_FORMAT = /\A[a-z0-9-]{1,20}\z/
 
   before_action :set_event, only: %i[show edit update destroy sync offline_manifest]
 
@@ -19,8 +21,19 @@ class EventsController < ApplicationController
   end
 
   def create
-    year = params[:event][:year].to_i
-    event_code = params[:event][:event_code].to_s.strip.downcase
+    create_params = create_event_params
+    year = create_params[:year].to_i
+    event_code = create_params[:event_code].to_s.strip.downcase
+    max_year = Date.current.year + 2
+
+    unless year.between?(MIN_EVENT_YEAR, max_year) && event_code.match?(EVENT_CODE_FORMAT)
+      @event = Event.new
+      authorize @event
+      flash.now[:alert] = "Provide a valid event year (#{MIN_EVENT_YEAR}–#{max_year}) and event code."
+      render :new, status: :unprocessable_entity
+      return
+    end
+
     tba_key = "#{year}#{event_code}"
     tba_configured = TbaClient.configured?
 
@@ -50,7 +63,7 @@ class EventsController < ApplicationController
         begin
           TbaSyncService.new(tba_key).sync_all!
         rescue StandardError => e
-          Rails.logger.warn("[EventsController] TBA sync failed for new event #{tba_key}: #{e.message}")
+          Rails.logger.warn("[EventsController] TBA sync failed for new event #{tba_key}: #{e.class}: #{e.message}")
         end
       end
 
@@ -63,6 +76,11 @@ class EventsController < ApplicationController
     else
       render :new, status: :unprocessable_entity
     end
+  rescue ActionController::ParameterMissing
+    @event = Event.new
+    authorize @event
+    flash.now[:alert] = "Provide a valid event year and event code."
+    render :new, status: :unprocessable_entity
   end
 
   def edit
@@ -81,8 +99,14 @@ class EventsController < ApplicationController
 
   def destroy
     authorize @event
-    @event.destroy!
-    redirect_to events_path, notice: "Event was successfully deleted.", status: :see_other
+    destroyed_id = @event.id
+    @event.destroy
+    session.delete(:current_event_id) if session[:current_event_id] == destroyed_id
+    if @event.destroyed?
+      redirect_to events_path, notice: "Event was successfully deleted.", status: :see_other
+    else
+      redirect_to @event, alert: "Could not delete event."
+    end
   end
 
   # POST /events/:id/select — sets the current event in session
@@ -162,13 +186,18 @@ class EventsController < ApplicationController
 
     redirect_to @event, notice: "Event data synced from The Blue Alliance. Statbotics data and predictions are updating in the background."
   rescue StandardError => e
-    redirect_to @event, alert: "Sync failed: #{e.message}"
+    Rails.logger.warn("[EventsController] Sync failed for event #{@event&.id}: #{e.class}: #{e.message}")
+    redirect_to @event, alert: "Sync failed. Please try again later."
   end
 
   private
 
   def set_event
     @event = Event.find(params[:id])
+  end
+
+  def create_event_params
+    params.expect(event: [ :year, :event_code ])
   end
 
   def update_event_params

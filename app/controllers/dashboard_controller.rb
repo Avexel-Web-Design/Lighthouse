@@ -10,7 +10,7 @@ class DashboardController < ApplicationController
 
     @event = current_event
     @team_summaries = TeamEventSummary.where(event: @event).order(avg_total_points: :desc)
-    @recent_entries = ScoutingEntry.where(event: @event).order(created_at: :desc).limit(10)
+    @recent_entries = ScoutingEntry.where(event: @event).includes(:user, :frc_team, :match).order(created_at: :desc).limit(10)
     @unresolved_conflicts_count = DataConflict.where(event: @event).unresolved.count
     @shift_status = UserShiftStatusService.new(@event, current_user).call
 

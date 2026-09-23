@@ -33,22 +33,33 @@ class TeamComparisonsController < ApplicationController
     @entries_by_team = {}
     @pit_data = {}
 
-    @teams.each do |team|
-      @summaries[team.id] = TeamEventSummary.find_by(event: current_event, frc_team: team)
-      @entries_by_team[team.id] = ScoutingEntry.where(event: current_event, frc_team: team)
-                                               .includes(:match)
-                                               .order(created_at: :asc)
-      # Deterministic primary: latest non-rejected report.
-      pit_entries = PitScoutingEntry.where(event: current_event, frc_team: team)
-                                    .order(updated_at: :desc)
-      @pit_data[team.id] = pit_entries.reject(&:rejected?).first || pit_entries.first
+    team_id_list = @teams.map(&:id)
+
+    if team_id_list.any?
+      TeamEventSummary.where(event: current_event, frc_team_id: team_id_list)
+                      .index_by(&:frc_team_id)
+                      .each { |team_id, summary| @summaries[team_id] = summary }
+      team_id_list.each { |team_id| @summaries[team_id] ||= nil }
+
+      ScoutingEntry.where(event: current_event, frc_team_id: team_id_list)
+                   .includes(:match)
+                   .order(created_at: :asc)
+                   .group_by(&:frc_team_id)
+                   .each { |team_id, entries| @entries_by_team[team_id] = entries }
+      team_id_list.each { |team_id| @entries_by_team[team_id] ||= [] }
+
+      PitScoutingEntry.where(event: current_event, frc_team_id: team_id_list)
+                      .index_by(&:frc_team_id)
+                      .each { |team_id, entry| @pit_data[team_id] = entry }
+      team_id_list.each { |team_id| @pit_data[team_id] ||= nil }
     end
 
     # Build radar chart data: event-wide values for percentile computation + per-team values
-    all_summaries = TeamEventSummary.where(event: current_event)
+    # Single query for all radar metrics (was one pluck per metric).
+    all_values = TeamEventSummary.where(event: current_event).pluck(*RADAR_METRICS)
 
-    @radar_all_values = RADAR_METRICS.index_with do |metric|
-      all_summaries.pluck(metric).compact.map(&:to_f)
+    @radar_all_values = RADAR_METRICS.each_with_index.to_h do |metric, idx|
+      [ metric, all_values.map { |row| row[idx] }.compact.map(&:to_f) ]
     end
 
     @radar_teams = @teams.each_with_index.map do |team, i|

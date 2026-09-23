@@ -1,4 +1,7 @@
 class ScoutingAssignmentsController < ApplicationController
+  MAX_BULK_USERS = 50
+  MAX_NOTES_LENGTH = 500
+
   before_action :require_event!
   before_action :ensure_qualification_matches!, only: :index
   before_action :set_matches, only: :index
@@ -33,16 +36,31 @@ class ScoutingAssignmentsController < ApplicationController
   def toggle
     authorize ScoutingAssignment, :toggle?
 
-    @user = User.find(params[:user_id])
-    @match = current_event.matches.find(params[:match_id])
+    toggle_ids = params.permit(:user_id, :match_id)
+    @user = User.find(toggle_ids[:user_id].to_i)
+    @match = current_event.matches.find(toggle_ids[:match_id].to_i)
 
     @assignment = ScoutingAssignment.find_by(event: current_event, user: @user, match: @match)
 
     if @assignment
-      @assignment.destroy!
+      @assignment.destroy
+      unless @assignment.destroyed?
+        respond_to do |format|
+          format.turbo_stream { head :unprocessable_entity }
+          format.html { redirect_to scouting_assignments_path, alert: "Could not remove assignment." }
+        end
+        return
+      end
       @assignment = nil
     else
-      @assignment = ScoutingAssignment.create!(event: current_event, user: @user, match: @match)
+      @assignment = ScoutingAssignment.create(event: current_event, user: @user, match: @match)
+      unless @assignment.persisted?
+        respond_to do |format|
+          format.turbo_stream { head :unprocessable_entity }
+          format.html { redirect_to scouting_assignments_path, alert: "Could not save assignment." }
+        end
+        return
+      end
     end
 
     @coverage_count = policy_scope(ScoutingAssignment).where(event: current_event, match: @match).count
@@ -83,7 +101,8 @@ class ScoutingAssignmentsController < ApplicationController
     redirect_to scouting_assignments_path,
                 notice: "Saved #{created} assignment#{"s" unless created == 1}."
   rescue StandardError => e
-    redirect_to scouting_assignments_path, alert: "Failed to save assignments: #{e.message}"
+    Rails.logger.warn("[ScoutingAssignmentsController] Bulk create failed: #{e.class}: #{e.message}")
+    redirect_to scouting_assignments_path, alert: "Failed to save assignments. Please try again."
   end
 
   def bulk_destroy
@@ -106,15 +125,20 @@ class ScoutingAssignmentsController < ApplicationController
     redirect_to scouting_assignments_path,
                 notice: "Cleared #{removed} assignment#{"s" unless removed == 1}."
   rescue StandardError => e
-    redirect_to scouting_assignments_path, alert: "Failed to clear assignments: #{e.message}"
+    Rails.logger.warn("[ScoutingAssignmentsController] Bulk destroy failed: #{e.class}: #{e.message}")
+    redirect_to scouting_assignments_path, alert: "Failed to clear assignments. Please try again."
   end
 
   def destroy
     assignment = ScoutingAssignment.where(event: current_event).find(params[:id])
     authorize assignment
 
-    assignment.destroy!
-    redirect_to scouting_assignments_path, notice: "Assignment removed.", status: :see_other
+    assignment.destroy
+    if assignment.destroyed?
+      redirect_to scouting_assignments_path, notice: "Assignment removed.", status: :see_other
+    else
+      redirect_to scouting_assignments_path, alert: "Could not remove assignment."
+    end
   end
 
   private
@@ -131,28 +155,33 @@ class ScoutingAssignmentsController < ApplicationController
 
   def bulk_params
     allowed = params.permit(:start_match_number, :end_match_number, :match_count, :notes, user_ids: [])
-    allowed[:user_ids] ||= []
+    allowed[:user_ids] = Array(allowed[:user_ids]).map(&:to_i).select(&:positive?).uniq.first(MAX_BULK_USERS)
+    allowed[:notes] = allowed[:notes].to_s.strip.first(MAX_NOTES_LENGTH)
     allowed
   end
 
   def assignment_range
+    max_match = Event::QUALIFICATION_MATCH_COUNT
     start_match = bulk_params[:start_match_number].to_i
-    return nil if start_match <= 0
+    return nil unless start_match.between?(1, max_match)
 
     if bulk_params[:end_match_number].present?
       end_match = bulk_params[:end_match_number].to_i
     elsif bulk_params[:match_count].present?
       count = bulk_params[:match_count].to_i
-      return nil if count <= 0
+      return nil unless count.between?(1, max_match)
 
       end_match = start_match + count - 1
     else
       end_match = start_match
     end
 
-    return nil if end_match <= 0
+    return nil unless end_match.between?(1, max_match)
 
-    [ start_match, end_match ].minmax
+    lower, upper = [ start_match, end_match ].minmax
+    return nil if (upper - lower + 1) > max_match
+
+    [ lower, upper ]
   end
 
   def latest_completed_match_index(matches)

@@ -3,8 +3,11 @@ module Api
     class PitScoutingEntriesController < ActionController::API
       include ApiAuthenticatable
       include Pundit::Authorization
+      include JsonRequestData
 
       rescue_from Pundit::NotAuthorizedError, with: :render_forbidden
+
+      MAX_BULK_SYNC = 100
 
       def create
         entry = PitScoutingEntry.from_offline_data(
@@ -38,15 +41,26 @@ module Api
       end
 
       def bulk_sync
-        entries_data = params.require(:entries)
+        entries_data = params[:entries]
+        unless entries_data.is_a?(Array) && entries_data.size <= MAX_BULK_SYNC
+          render json: { error: "Too many entries (max #{MAX_BULK_SYNC})." }, status: :unprocessable_entity
+          return
+        end
+
         results = []
 
         entries_data.each do |entry_data|
+          unless entry_data.is_a?(ActionController::Parameters)
+            results << { client_uuid: nil, status: "error", errors: [ "Entry must be an object" ] }
+            next
+          end
+
           permitted = entry_data.permit(
             :event_id, :frc_team_id,
-            :notes, :client_uuid, :status,
-            data: {}
+            :notes, :client_uuid, :status
           ).merge(user_id: current_api_user.id)
+          permitted[:data] = json_request_data(entry_data[:data])
+          permitted[:notes] = permitted[:notes].to_s.strip.first(2000) if permitted[:notes].present?
 
           entry = PitScoutingEntry.from_offline_data(permitted)
           begin
@@ -61,7 +75,7 @@ module Api
             next
           end
 
-          existing = PitScoutingEntry.find_by(client_uuid: permitted[:client_uuid]) if permitted[:client_uuid].present?
+          existing = permitted[:client_uuid].present? ? PitScoutingEntry.find_by(client_uuid: permitted[:client_uuid]) : nil
 
           if existing
             if entry.event_id.present? && existing.event_id != entry.event_id.to_i
@@ -76,6 +90,9 @@ module Api
               results << { client_uuid: permitted[:client_uuid], status: "error", errors: entry.errors.full_messages }
             end
           end
+        rescue ActionController::BadRequest, ArgumentError, ActiveRecord::RecordNotUnique => e
+          Rails.logger.warn("[Api::V1::PitScoutingEntriesController] Sync row failed: #{e.class}")
+          results << { client_uuid: permitted&.[](:client_uuid), status: "error", errors: [ "Could not save entry" ] }
         end
 
         render json: { results: results }
@@ -103,11 +120,13 @@ module Api
       end
 
       def entry_params
-        params.require(:pit_scouting_entry).permit(
+        permitted = params.expect(pit_scouting_entry: [
           :event_id, :frc_team_id,
-          :notes, :client_uuid, :status,
-          data: {}
-        )
+          :notes, :client_uuid, :status
+        ])
+        permitted[:data] = json_request_data(params.dig(:pit_scouting_entry, :data))
+        permitted[:notes] = permitted[:notes].to_s.strip.first(2000) if permitted[:notes].present?
+        permitted
       end
     end
   end

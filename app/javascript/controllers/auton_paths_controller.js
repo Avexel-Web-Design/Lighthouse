@@ -52,75 +52,142 @@ export default class extends Controller {
     block.setAttribute("data-auton-path-block", index)
     block.className = "bg-gray-800 rounded-lg p-3 space-y-3"
 
-    const strokesJson = existingData?.strokes ? JSON.stringify(existingData.strokes) : "[]"
-    const fuelScored = existingData?.fuel_scored || 0
-    const actions = existingData?.actions || []
+    const strokes = existingData?.strokes || []
+    const strokesJson = JSON.stringify(strokes)
+    const fuelScored = Number(existingData?.fuel_scored) || 0
+    const actions = Array.isArray(existingData?.actions) ? existingData.actions : []
 
-    // The field-map controller scope wraps the canvas, undo/clear buttons, AND the hidden field
-    block.innerHTML = `
-      <div class="flex items-center justify-between mb-1">
-        <span class="text-xs text-gray-400 font-medium" data-path-label>Auto Path #${index}</span>
-        <button type="button"
-                class="text-xs text-red-400 hover:text-red-300 transition"
-                data-action="click->auton-paths#removePath">
-          Remove
-        </button>
-      </div>
-
-      <div data-controller="field-map"
-           data-field-map-strokes-value='${this.#escapeAttr(strokesJson)}'>
-        <div class="relative rounded-lg overflow-hidden border border-gray-700 bg-gray-800 touch-none">
-          <img src="${this.#escapeAttr(this.fieldImageValue)}"
-               class="w-full block select-none pointer-events-none"
-               alt="Field map"
-               data-field-map-target="image" />
-          <canvas class="absolute inset-0 w-full h-full cursor-crosshair"
-                  data-field-map-target="canvas"
-                  data-action="pointerdown->field-map#startStroke pointermove->field-map#continueStroke pointerup->field-map#endStroke pointerleave->field-map#endStroke"></canvas>
-        </div>
-
-        <div class="flex gap-2 mt-2">
-          <button type="button"
-                  class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-gray-300 transition select-none"
-                  data-action="click->field-map#undo">
-            Undo
-          </button>
-          <button type="button"
-                  class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-gray-300 transition select-none"
-                  data-action="click->field-map#clear">
-            Clear
-          </button>
-        </div>
-
-        <input type="hidden" data-field-map-target="hiddenField" data-path-strokes value='${this.#escapeAttr(strokesJson)}' />
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs text-gray-400 mb-1">Fuel Scored</label>
-          <input type="number" min="0" value="${fuelScored}" data-path-fuel
-                 class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition" />
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-xs text-gray-400 mb-1.5">Actions</label>
-        <div class="flex flex-wrap gap-2">
-          ${["Bump", "Trench", "Outpost", "Depot", "Climb"].map(action => {
-            const checked = actions.includes(action) ? "checked" : ""
-            return `
-              <label class="flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition text-sm font-medium
-                bg-gray-700 border-gray-600 text-gray-400 hover:border-gray-500
-                has-[:checked]:bg-amber-500/20 has-[:checked]:border-amber-500/30 has-[:checked]:text-amber-400">
-                <input type="checkbox" value="${action}" data-path-action class="hidden" ${checked} />
-                ${action}
-              </label>`
-          }).join("")}
-        </div>
-      </div>
-    `
+    // Built with createElement/textContent only (no innerHTML): strokes JSON
+    // and action labels originate from stored form data and must never be
+    // parsed as HTML. Values are assigned via properties (.value, .checked).
+    block.appendChild(this.#buildPathHeader(index))
+    block.appendChild(this.#buildFieldMap(strokesJson))
+    block.appendChild(this.#buildFuelField(fuelScored))
+    block.appendChild(this.#buildActionsField(actions))
 
     this.containerTarget.appendChild(block)
+  }
+
+  #buildPathHeader(index) {
+    const header = document.createElement("div")
+    header.className = "flex items-center justify-between mb-1"
+
+    const label = document.createElement("span")
+    label.className = "text-xs text-gray-400 font-medium"
+    label.setAttribute("data-path-label", "")
+    label.textContent = `Auto Path #${index}`
+    header.appendChild(label)
+
+    const remove = document.createElement("button")
+    remove.type = "button"
+    remove.className = "text-xs text-red-400 hover:text-red-300 transition"
+    remove.setAttribute("data-action", "click->auton-paths#removePath")
+    remove.textContent = "Remove"
+    header.appendChild(remove)
+
+    return header
+  }
+
+  #buildFieldMap(strokesJson) {
+    const scope = document.createElement("div")
+    scope.setAttribute("data-controller", "field-map")
+    scope.setAttribute("data-field-map-strokes-value", strokesJson)
+
+    const frame = document.createElement("div")
+    frame.className = "relative rounded-lg overflow-hidden border border-gray-700 bg-gray-800 touch-none"
+
+    const img = document.createElement("img")
+    img.src = this.fieldImageValue
+    img.className = "w-full block select-none pointer-events-none"
+    img.alt = "Field map"
+    img.setAttribute("data-field-map-target", "image")
+    frame.appendChild(img)
+
+    const canvas = document.createElement("canvas")
+    canvas.className = "absolute inset-0 w-full h-full cursor-crosshair"
+    canvas.setAttribute("data-field-map-target", "canvas")
+    canvas.setAttribute("tabindex", "0")
+    canvas.setAttribute("role", "application")
+    canvas.setAttribute("aria-label", "Autonomous path drawing canvas. Use a pointer to draw; press U to undo the last stroke, C to clear.")
+    canvas.setAttribute("data-action", "pointerdown->field-map#startStroke pointermove->field-map#continueStroke pointerup->field-map#endStroke pointerleave->field-map#endStroke keydown->field-map#handleKey")
+    frame.appendChild(canvas)
+    scope.appendChild(frame)
+
+    const buttons = document.createElement("div")
+    buttons.className = "flex gap-2 mt-2"
+    for (const action of ["undo", "clear"]) {
+      const btn = document.createElement("button")
+      btn.type = "button"
+      btn.className = "px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-gray-300 transition select-none"
+      btn.setAttribute("data-action", `click->field-map#${action}`)
+      btn.textContent = action === "undo" ? "Undo" : "Clear"
+      buttons.appendChild(btn)
+    }
+    scope.appendChild(buttons)
+
+    const hidden = document.createElement("input")
+    hidden.type = "hidden"
+    hidden.setAttribute("data-field-map-target", "hiddenField")
+    hidden.setAttribute("data-path-strokes", "")
+    hidden.value = strokesJson
+    scope.appendChild(hidden)
+
+    return scope
+  }
+
+  #buildFuelField(fuelScored) {
+    const wrap = document.createElement("div")
+    wrap.className = "grid grid-cols-2 gap-3"
+
+    const group = document.createElement("div")
+    const label = document.createElement("label")
+    label.className = "block text-xs text-gray-400 mb-1"
+    label.textContent = "Fuel Scored"
+    group.appendChild(label)
+
+    const input = document.createElement("input")
+    input.type = "number"
+    input.min = "0"
+    input.value = String(fuelScored)
+    input.setAttribute("data-path-fuel", "")
+    input.className = "w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+    group.appendChild(input)
+    wrap.appendChild(group)
+
+    return wrap
+  }
+
+  #buildActionsField(actions) {
+    const wrap = document.createElement("div")
+
+    const label = document.createElement("label")
+    label.className = "block text-xs text-gray-400 mb-1.5"
+    label.textContent = "Actions"
+    wrap.appendChild(label)
+
+    const list = document.createElement("div")
+    list.className = "flex flex-wrap gap-2"
+    for (const action of ["Bump", "Trench", "Outpost", "Depot", "Climb"]) {
+      const item = document.createElement("label")
+      item.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition text-sm font-medium bg-gray-700 border-gray-600 text-gray-400 hover:border-gray-500 has-[:checked]:bg-amber-500/20 has-[:checked]:border-amber-500/30 has-[:checked]:text-amber-400"
+
+      const checkbox = document.createElement("input")
+      checkbox.type = "checkbox"
+      checkbox.value = action
+      checkbox.className = "hidden"
+      checkbox.setAttribute("data-path-action", "")
+      checkbox.checked = actions.includes(action)
+      item.appendChild(checkbox)
+
+      const text = document.createElement("span")
+      text.textContent = action
+      item.appendChild(text)
+
+      list.appendChild(item)
+    }
+    wrap.appendChild(list)
+
+    return wrap
   }
 
   #renumberBlocks() {
@@ -156,9 +223,5 @@ export default class extends Controller {
     })
 
     this.hiddenFieldTarget.value = JSON.stringify(paths)
-  }
-
-  #escapeAttr(str) {
-    return str.replace(/&/g, "&amp;").replace(/'/g, "&#39;").replace(/"/g, "&quot;")
   }
 }

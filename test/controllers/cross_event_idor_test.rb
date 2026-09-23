@@ -21,7 +21,8 @@ class CrossEventIdorTest < ActionDispatch::IntegrationTest
     )
 
     get scouting_entry_path(other_entry)
-    assert_response :missing
+    # Scoped to current_event → RecordNotFound → redirect (ApplicationController#record_not_found)
+    assert_response :redirect
   end
 
   test "cannot access pick list from other event" do
@@ -34,7 +35,8 @@ class CrossEventIdorTest < ActionDispatch::IntegrationTest
     )
 
     get pick_list_path(other_list)
-    assert_response :missing
+    # Scoped to current_event → RecordNotFound → redirect (ApplicationController#record_not_found)
+    assert_response :redirect
   end
 
   test "cannot resolve data conflict from other event" do
@@ -50,6 +52,7 @@ class CrossEventIdorTest < ActionDispatch::IntegrationTest
     )
 
     post resolve_data_conflict_path(conflict), params: { resolution: "L3" }
-    assert_response :missing
+    # Scoped to current_event → RecordNotFound → redirect (ApplicationController#record_not_found)
+    assert_response :redirect
   end
 end

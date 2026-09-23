@@ -21,7 +21,7 @@
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-3">
           <div>
             <h2 class="text-sm font-semibold text-white uppercase tracking-wider">Teams</h2>
-            <p class="text-sm text-gray-500 mt-1">Use the add buttons to build the board, then fine-tune order after saving.</p>
+            <p class="text-sm text-gray-400 mt-1">Use the add buttons to build the board, then fine-tune order after saving.</p>
           </div>
           <span class="badge-orange text-xs self-start sm:self-auto" data-pick-list-selection-target="count"><%= pick_list.team_count %> selected</span>
         </div>
@@ -36,7 +36,7 @@
           <div class="mb-3 flex items-center justify-between gap-3">
             <div>
               <h3 class="text-sm font-semibold text-white">Selected Teams</h3>
-              <p class="text-xs text-gray-500 mt-1">Tap a chip to remove it quickly.</p>
+              <p class="text-xs text-gray-400 mt-1">Tap a chip to remove it quickly.</p>
             </div>
             <button type="button" class="text-xs text-gray-400 hover:text-orange-300 transition-colors duration-150" data-action="click->pick-list-selection#clearSelection">
               Clear all
@@ -44,14 +44,14 @@
           </div>
 
           <div class="flex flex-wrap gap-2" data-pick-list-selection-target="selectedList">
-            <p class="text-sm text-gray-500">No teams selected yet.</p>
+            <p class="text-sm text-gray-400">No teams selected yet.</p>
           </div>
         </div>
 
         <div class="relative mb-3">
           <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_15rem] gap-3">
             <div class="relative">
-              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input type="text"
@@ -123,7 +123,7 @@
                       <% end %>
                     </div>
 
-                    <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                    <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
                       <span><%= summary ? "#{avg_points} avg pts" : "No scouting summary" %></span>
                       <% if matches_scouted.positive? %>
                         <span><%= matches_scouted %> matches</span>
@@ -136,7 +136,7 @@
                       <% end %>
                     </div>
 
-                    <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
+                    <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
                       <% if recent_entry %>
                         <span>Latest <%= recent_match || "entry" %></span>
                         <span><%= recent_points %> pts</span>
@@ -159,7 +159,7 @@
             </div>
           <% else %>
             <div class="px-4 py-8 text-center">
-              <p class="text-sm text-gray-500">No teams are available for the current event yet.</p>
+              <p class="text-sm text-gray-400">No teams are available for the current event yet.</p>
             </div>
           <% end %>
         </div>

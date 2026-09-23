@@ -29,7 +29,7 @@
         <p class="text-lg font-bold text-white mt-1">
           <%= link_to @scouting_entry.frc_team.team_number, team_path(@scouting_entry.frc_team), class: "text-orange-400 hover:text-orange-300 transition-colors duration-150 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500" %>
         </p>
-        <p class="text-xs text-gray-500"><%= @scouting_entry.frc_team.nickname %></p>
+        <p class="text-xs text-gray-400"><%= @scouting_entry.frc_team.nickname %></p>
       </div>
       <div>
         <span class="text-xs text-gray-400 uppercase tracking-wider font-medium">Match</span>
@@ -38,7 +38,7 @@
       <div>
         <span class="text-xs text-gray-400 uppercase tracking-wider font-medium">Scout</span>
         <p class="text-lg font-bold text-white mt-1"><%= @scouting_entry.user.full_name %></p>
-        <p class="text-xs text-gray-500 mt-1"><%= @scouting_entry.mode_label %> scouting</p>
+        <p class="text-xs text-gray-400 mt-1"><%= @scouting_entry.mode_label %> scouting</p>
       </div>
       <div>
         <span class="text-xs text-gray-400 uppercase tracking-wider font-medium">Total Points</span>
@@ -55,7 +55,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <h3 class="text-xs text-gray-400 uppercase tracking-wider font-medium">Entry Accuracy</h3>
-        <span class="text-xs text-gray-600 ml-auto capitalize"><%= @alliance_color %> Alliance</span>
+        <span class="text-xs text-gray-400 ml-auto capitalize"><%= @alliance_color %> Alliance</span>
       </div>
       <% if @alliance_complete %>
         <div class="grid grid-cols-3 gap-4 text-center mb-3">
@@ -74,7 +74,7 @@
             <p class="text-xs text-gray-400">Pts Off</p>
           </div>
         </div>
-        <div class="flex items-center gap-3 text-xs text-gray-500">
+        <div class="flex items-center gap-3 text-xs text-gray-400">
           <span>This entry contributed <span class="text-white font-mono font-medium"><%= @this_entry_points %></span> of the <span class="text-white font-mono font-medium"><%= @scouted_total %></span> scouted points</span>
           <% if @scouting_entry.approved? %>
             <span class="badge-emerald text-[10px]">Counts as approved coverage</span>
@@ -91,7 +91,7 @@
             <p class="text-xs text-gray-400">Actual Score</p>
           </div>
         </div>
-        <p class="text-xs text-gray-500">Full alliance comparison unavailable — not all 3 teams on this alliance were counted for this match.</p>
+        <p class="text-xs text-gray-400">Full alliance comparison unavailable — not all 3 teams on this alliance were counted for this match.</p>
       <% end %>
     </div>
   <% end %>
@@ -117,14 +117,14 @@
         </div>
         <div class="flex items-center justify-between">
           <span class="text-sm text-gray-400">Climb</span>
-          <span class="text-sm font-bold <%= @scouting_entry.data&.dig('auton_climb').to_s == 'true' ? 'text-orange-400' : 'text-gray-600' %>">
+          <span class="text-sm font-bold <%= @scouting_entry.data&.dig('auton_climb').to_s == 'true' ? 'text-orange-400' : 'text-gray-400' %>">
             <%= @scouting_entry.data&.dig("auton_climb").to_s == "true" ? "Yes" : "No" %>
           </span>
         </div>
         <% auton_path = @scouting_entry.data&.dig("auton_path") %>
         <% if auton_path.present? && auton_path.is_a?(Array) && auton_path.any? %>
           <div class="pt-2 border-t border-gray-800">
-            <span class="text-xs text-gray-500">Auton Path:</span>
+            <span class="text-xs text-gray-400">Auton Path:</span>
             <div class="mt-1 relative rounded-lg overflow-hidden border border-gray-700"
                  data-controller="field-map"
                  data-field-map-strokes-value="<%= auton_path.to_json %>"
@@ -183,7 +183,7 @@
                 when 'L3' then 'text-orange-400'
                 when 'L2' then 'text-blue-400'
                 when 'L1' then 'text-amber-400'
-                else 'text-gray-600'
+                else 'text-gray-400'
                 end %>">
             <%= climb %>
           </span>
@@ -198,7 +198,7 @@
                   when 4 then 'text-emerald-400'
                   when 3 then 'text-amber-400'
                   when 2 then 'text-gray-400'
-                  else 'text-gray-600'
+                  else 'text-gray-400'
                   end %>">
               <%= defense %>/5
             </span>
@@ -250,7 +250,7 @@
         <%= link_to "Open Video", replay_watch_url, class: "btn-secondary", target: "_blank", rel: "noopener" if replay_watch_url.present? %>
       </div>
       <% if @scouting_entry.video_key.present? %>
-        <p class="text-xs text-gray-500 font-mono break-all"><%= @scouting_entry.video_key %></p>
+        <p class="text-xs text-gray-400 font-mono break-all"><%= @scouting_entry.video_key %></p>
       <% end %>
     </div>
   <% end %>
@@ -262,12 +262,12 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
       </svg>
       <span class="text-sm font-medium text-gray-300">QR Code for Offline Transfer</span>
-      <svg class="w-4 h-4 text-gray-500 ml-auto transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-4 h-4 text-gray-400 ml-auto transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
       </svg>
     </summary>
     <div class="px-4 pb-4">
-      <p class="text-xs text-gray-500 mb-3">Have an analyst or admin scan this code to import this entry without internet.</p>
+      <p class="text-xs text-gray-400 mb-3">Have an analyst or admin scan this code to import this entry without internet.</p>
       <%
         qr_entry = {
           client_uuid: @scouting_entry.client_uuid,
@@ -288,7 +288,7 @@
            data-qr-generator-entry-value="<%= qr_entry.to_json %>">
         <canvas data-qr-generator-target="canvas" class="rounded-lg"></canvas>
         <p data-qr-generator-target="error" class="hidden text-sm text-red-400 mt-2"></p>
-        <p class="text-xs text-gray-600 mt-2">
+        <p class="text-xs text-gray-400 mt-2">
           Payload: <span data-qr-generator-target="size" class="font-mono">--</span>
         </p>
       </div>
@@ -306,6 +306,6 @@
     <% if policy(@scouting_entry).destroy? %>
       <%= button_to "Delete", scouting_entry_path(@scouting_entry), method: :delete, data: { turbo_confirm: "Are you sure you want to delete this entry?" }, class: "btn-danger" %>
     <% end %>
-    <span class="text-xs text-gray-600 ml-auto">Created <%= time_ago_in_words(@scouting_entry.created_at) %> ago</span>
+    <span class="text-xs text-gray-400 ml-auto">Created <%= time_ago_in_words(@scouting_entry.created_at) %> ago</span>
   </div>
 </div>

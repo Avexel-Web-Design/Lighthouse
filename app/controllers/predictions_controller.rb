@@ -22,7 +22,7 @@ class PredictionsController < ApplicationController
   def show
     authorize :prediction, :show?
 
-    @match = current_event.matches.find(params[:id])
+    @match = current_event.matches.includes(match_alliances: :frc_team).find(params[:id])
     @prediction = Prediction.find_by(match: @match, event: current_event, source: "blended")
 
     red_alliances = @match.match_alliances.select { |ma| ma.alliance_color == "red" }
@@ -31,8 +31,11 @@ class PredictionsController < ApplicationController
     @red_teams = red_alliances.sort_by(&:station).map(&:frc_team)
     @blue_teams = blue_alliances.sort_by(&:station).map(&:frc_team)
 
-    @red_summaries = @red_teams.map { |t| TeamEventSummary.find_by(event: current_event, frc_team: t) }.compact
-    @blue_summaries = @blue_teams.map { |t| TeamEventSummary.find_by(event: current_event, frc_team: t) }.compact
+    summaries_by_team = TeamEventSummary.where(event: current_event, frc_team_id: (@red_teams + @blue_teams).map(&:id))
+                                        .includes(:frc_team)
+                                        .index_by(&:frc_team_id)
+    @red_summaries = @red_teams.filter_map { |t| summaries_by_team[t.id] }
+    @blue_summaries = @blue_teams.filter_map { |t| summaries_by_team[t.id] }
   end
 
   def generate
@@ -46,6 +49,7 @@ class PredictionsController < ApplicationController
 
     redirect_to predictions_path, notice: "Generated predictions for #{count} matches."
   rescue StandardError => e
-    redirect_to predictions_path, alert: "Failed to generate predictions: #{e.message}"
+    Rails.logger.warn("[PredictionsController] Generate failed for event #{current_event&.id}: #{e.class}: #{e.message}")
+    redirect_to predictions_path, alert: "Failed to generate predictions. Please try again later."
   end
 end

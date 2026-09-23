@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class ExcelExportService
+  # Shared with ExportService to avoid header drift between CSV/PDF/XLSX.
+  SUMMARY_HEADERS = ExportService::CSV_HEADERS
+
   def initialize(event)
     @event = event
     @aggregation = AggregationService.new(event)
@@ -29,13 +32,9 @@ class ExcelExportService
 
     workbook.add_worksheet(name: "Team Summary") do |sheet|
       header_style = sheet.styles.add_style(b: true, bg_color: "333333", fg_color: "FFFFFF", sz: 10)
-      number_style = sheet.styles.add_style(num_fmt: 1)
+      sheet.styles.add_style(num_fmt: 1)
 
-      sheet.add_row [
-        "Rank", "Team #", "Nickname", "Avg Fuel Made", "Avg Fuel Missed",
-        "Fuel Accuracy %", "Avg Climb Pts", "Avg Total Pts", "Std Dev",
-        "Matches Scouted", "Confidence"
-      ], style: header_style
+      sheet.add_row SUMMARY_HEADERS, style: header_style
 
       aggregations.each_with_index do |agg, idx|
         team = agg[:frc_team]

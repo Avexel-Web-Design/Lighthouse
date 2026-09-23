@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { moveRadioSelection, switchPillTab, updateSelectionCards } from "lib/selection"
 
 const FUEL_POINT_VALUE = 1
 const AUTON_CLIMB_POINTS = 15
@@ -107,23 +108,15 @@ export default class extends Controller {
     this.#stopCounterHold()
   }
 
+  navigateTab(event) {
+    const buttons = [...this.element.querySelectorAll("[data-tab-button]")]
+    moveRadioSelection(event, buttons, buttons.indexOf(event.currentTarget))
+  }
+
   switchTab(event) {
     const tab = event.currentTarget.dataset.tab
-
-    this.element.querySelectorAll("[data-tab-button]").forEach(button => {
-      const active = button.dataset.tab === tab
-      button.setAttribute("aria-selected", active)
-      button.classList.toggle("bg-orange-500/15", active)
-      button.classList.toggle("text-orange-400", active)
-      button.classList.toggle("shadow-sm", active)
-      button.classList.toggle("text-gray-400", !active)
-      button.classList.toggle("hover:text-gray-300", !active)
-      button.classList.toggle("hover:bg-gray-800/70", !active)
-    })
-
-    this.tabContentTargets.forEach(panel => {
-      panel.classList.toggle("hidden", panel.dataset.tabPanel !== tab)
-    })
+    const buttons = [...this.element.querySelectorAll("[data-tab-button]")]
+    switchPillTab(this.element, buttons, this.tabContentTargets, tab)
   }
 
   showQuestions() {
@@ -149,27 +142,20 @@ export default class extends Controller {
     this.updateDisplay()
   }
 
+  toggleAutonClimbFromKey(event) {
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault()
+      this.toggleAutonClimb()
+    }
+  }
+
   selectClimb(event) {
     const level = event.currentTarget.dataset.level
     this.endgameClimbValue = level
 
-    this.element.querySelectorAll("[data-climb-card]").forEach(card => {
-      const selected = card.dataset.level === level
-      card.classList.toggle("ring-2", selected)
-      card.classList.toggle("ring-orange-400", selected)
-      card.classList.toggle("bg-orange-500/15", selected)
-      card.classList.toggle("border-orange-500", selected)
-      card.classList.toggle("shadow-lg", selected)
-      card.classList.toggle("shadow-orange-500/10", selected)
-      card.classList.toggle("bg-gray-900", !selected)
-      card.classList.toggle("border-gray-800", !selected)
-
-      const label = card.querySelector("p:first-child")
-      if (label) {
-        label.classList.toggle("text-orange-400", selected)
-        label.classList.toggle("text-gray-300", !selected)
-      }
-    })
+    updateSelectionCards(this.element, "[data-climb-card]",
+      (card) => card.dataset.level === level,
+      ["bg-gray-900", "border-gray-800"])
 
     this.updateDisplay()
   }
@@ -178,23 +164,16 @@ export default class extends Controller {
     const rating = parseInt(event.currentTarget.dataset.rating, 10)
     this.defenseRatingValue = rating
 
-    this.element.querySelectorAll("[data-defense-card]").forEach(card => {
-      const selected = parseInt(card.dataset.rating, 10) === rating
-      card.classList.toggle("ring-2", selected)
-      card.classList.toggle("ring-orange-400", selected)
-      card.classList.toggle("bg-orange-500/15", selected)
-      card.classList.toggle("border-orange-500", selected)
-      card.classList.toggle("shadow-lg", selected)
-      card.classList.toggle("shadow-orange-500/10", selected)
-      card.classList.toggle("bg-gray-900", !selected)
-      card.classList.toggle("border-gray-800", !selected)
+    updateSelectionCards(this.element, "[data-defense-card]",
+      (card) => parseInt(card.dataset.rating, 10) === rating,
+      ["bg-gray-900", "border-gray-800"])
+  }
 
-      const label = card.querySelector("p:first-child")
-      if (label) {
-        label.classList.toggle("text-orange-400", selected)
-        label.classList.toggle("text-gray-300", !selected)
-      }
-    })
+  navigateRadio(event) {
+    const group = event.currentTarget.closest("[role='radiogroup']")
+    if (!group) return
+    const cards = [...group.querySelectorAll("[role='radio']")]
+    moveRadioSelection(event, cards, cards.indexOf(event.currentTarget))
   }
 
   submitForm() {

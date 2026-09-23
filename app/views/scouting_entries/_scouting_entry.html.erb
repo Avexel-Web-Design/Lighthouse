@@ -16,7 +16,7 @@
           Team <%= scouting_entry.frc_team.team_number %>
         <% end %>
       </p>
-      <p class="text-xs text-gray-500 truncate">
+      <p class="text-xs text-gray-400 truncate">
         <%= scouting_entry.user.full_name %> &middot; <%= scouting_entry.mode_label %> &middot; <%= time_ago_in_words(scouting_entry.created_at) %> ago
       </p>
     </div>
@@ -30,7 +30,7 @@
         </span>
       <% end %>
     </div>
-    <svg class="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors duration-150" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg class="w-4 h-4 text-gray-400 group-hover:text-gray-400 transition-colors duration-150" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
     </svg>
   </div>

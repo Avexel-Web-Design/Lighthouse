@@ -43,7 +43,7 @@
         <% else %>
           <%= link_to new_pit_scouting_entry_path(frc_team_id: team.id), class: "bg-gray-800 border border-gray-700 rounded-lg p-3 text-center hover:bg-gray-700 transition" do %>
             <p class="font-bold text-gray-400"><%= team.team_number %></p>
-            <p class="text-xs text-gray-600 mt-0.5">Not scouted</p>
+            <p class="text-xs text-gray-400 mt-0.5">Not scouted</p>
           <% end %>
         <% end %>
       <% end %>
@@ -65,12 +65,12 @@
               <span class="text-sm font-bold text-orange-400"><%= entry.frc_team.team_number %></span>
             </div>
             <div>
-              <p class="text-sm font-medium text-white">Team <%= entry.frc_team.team_number %> <span class="text-gray-500"><%= entry.frc_team.nickname %></span></p>
-              <p class="text-xs text-gray-500"><%= entry.user.full_name %> &middot; <%= time_ago_in_words(entry.updated_at) %> ago</p>
+              <p class="text-sm font-medium text-white">Team <%= entry.frc_team.team_number %> <span class="text-gray-400"><%= entry.frc_team.nickname %></span></p>
+              <p class="text-xs text-gray-400"><%= entry.user.full_name %> &middot; <%= time_ago_in_words(entry.updated_at) %> ago</p>
             </div>
           </div>
           <div class="text-right">
-            <span class="text-xs text-gray-500"><%= entry.drivetrain %></span>
+            <span class="text-xs text-gray-400"><%= entry.drivetrain %></span>
           </div>
         <% end %>
       <% end %>

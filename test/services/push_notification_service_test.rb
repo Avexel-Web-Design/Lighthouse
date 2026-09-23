@@ -4,6 +4,7 @@ class PushNotificationServiceTest < ActiveSupport::TestCase
   setup do
     @user = users(:admin_user)
     @assignment = scouting_assignments(:admin_qm2)
+    @original_vapid = ENV.to_h.slice("VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY")
   end
 
   test "sends payload to each subscription" do
@@ -17,9 +18,11 @@ class PushNotificationServiceTest < ActiveSupport::TestCase
 
     assert_equal 1, captured.length
     assert_equal web_push_subscriptions(:admin_phone).endpoint, captured.first[:endpoint]
+    assert_equal "public", captured.first[:vapid][:public_key]
+    assert_equal "private", captured.first[:vapid][:private_key]
   ensure
-    ENV.delete("VAPID_PUBLIC_KEY")
-    ENV.delete("VAPID_PRIVATE_KEY")
+    ENV["VAPID_PUBLIC_KEY"] = @original_vapid["VAPID_PUBLIC_KEY"]
+    ENV["VAPID_PRIVATE_KEY"] = @original_vapid["VAPID_PRIVATE_KEY"]
   end
 
   test "returns false when delivery fails" do
@@ -35,8 +38,8 @@ class PushNotificationServiceTest < ActiveSupport::TestCase
       assert_not delivered
     end
   ensure
-    ENV.delete("VAPID_PUBLIC_KEY")
-    ENV.delete("VAPID_PRIVATE_KEY")
+    ENV["VAPID_PUBLIC_KEY"] = @original_vapid["VAPID_PUBLIC_KEY"]
+    ENV["VAPID_PRIVATE_KEY"] = @original_vapid["VAPID_PRIVATE_KEY"]
   end
 
   test "send_test_notification succeeds with subscription" do
@@ -48,8 +51,26 @@ class PushNotificationServiceTest < ActiveSupport::TestCase
       assert delivered
     end
   ensure
-    ENV.delete("VAPID_PUBLIC_KEY")
-    ENV.delete("VAPID_PRIVATE_KEY")
+    ENV["VAPID_PUBLIC_KEY"] = @original_vapid["VAPID_PUBLIC_KEY"]
+    ENV["VAPID_PRIVATE_KEY"] = @original_vapid["VAPID_PRIVATE_KEY"]
+  end
+
+  test "does not deliver when either VAPID key is missing" do
+    %w[VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY].each do |missing_key|
+      ENV["VAPID_PUBLIC_KEY"] = "public"
+      ENV["VAPID_PRIVATE_KEY"] = "private"
+      ENV.delete(missing_key)
+      captured = []
+
+      with_stubbed_webpush(captured) do
+        assert_not PushNotificationService.new(@user).send_test_notification!
+      end
+      assert_empty captured
+      assert @user.web_push_subscriptions.exists?
+    end
+  ensure
+    ENV["VAPID_PUBLIC_KEY"] = @original_vapid["VAPID_PUBLIC_KEY"]
+    ENV["VAPID_PRIVATE_KEY"] = @original_vapid["VAPID_PRIVATE_KEY"]
   end
 
   private

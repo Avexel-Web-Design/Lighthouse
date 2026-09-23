@@ -3,6 +3,7 @@ require "test_helper"
 class WebPushSubscriptionsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:scout_user)
+    @original_vapid = ENV.to_h.slice("VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY")
     sign_in_as(@user)
   end
 
@@ -86,8 +87,8 @@ class WebPushSubscriptionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
   ensure
-    ENV.delete("VAPID_PUBLIC_KEY")
-    ENV.delete("VAPID_PRIVATE_KEY")
+    ENV["VAPID_PUBLIC_KEY"] = @original_vapid["VAPID_PUBLIC_KEY"]
+    ENV["VAPID_PRIVATE_KEY"] = @original_vapid["VAPID_PRIVATE_KEY"]
   end
 
   test "test notification returns error without subscription" do

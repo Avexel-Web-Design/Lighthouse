@@ -19,7 +19,7 @@ class DataConflictResolutionService
       )
     end
 
-    RefreshSummariesJob.perform_now(@conflict.event_id)
+    RefreshSummariesJob.perform_later(@conflict.event_id)
     @conflict
   end
 
@@ -69,8 +69,10 @@ class DataConflictResolutionService
   end
 
   def serialized_resolution_value
-    value = typed_resolution_value
-    value.is_a?(String) ? value : value.to_s
+    # Store the raw user input verbatim. Using typed_resolution_value.to_s here
+    # would lose information (e.g. boolean "1" casts to true, then serializes
+    # as "true"), while entries still receive the correctly typed value.
+    @resolution_value.to_s
   end
 
   def boolean_values?(values)

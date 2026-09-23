@@ -28,7 +28,7 @@
 
   <%# ===== ROBOT SPECIFICATIONS ===== %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-    <h3 class="text-xs text-gray-500 uppercase tracking-wider mb-3">Robot Specifications</h3>
+    <h3 class="text-xs text-gray-400 uppercase tracking-wider mb-3">Robot Specifications</h3>
     <div class="grid grid-cols-2 gap-3">
       <% %w[robot_width robot_length robot_height robot_weight].each do |field| %>
         <div>
@@ -45,7 +45,7 @@
 
   <%# ===== DRIVETRAIN ===== %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-    <h3 class="text-xs text-gray-500 uppercase tracking-wider mb-3">Drivetrain</h3>
+    <h3 class="text-xs text-gray-400 uppercase tracking-wider mb-3">Drivetrain</h3>
 
     <%# Drive type %>
     <%= label_tag "pit_scouting_entry[data][drivetrain]", "Drive Type", class: "block text-sm font-medium text-gray-300 mb-1" %>
@@ -85,18 +85,18 @@
 
     <%# Drivetrain notes %>
     <div>
-      <%= label_tag "pit_scouting_entry[data][drivetrain_notes]", "Notes", class: "block text-xs text-gray-500 uppercase tracking-wider mb-1" %>
+      <%= label_tag "pit_scouting_entry[data][drivetrain_notes]", "Notes", class: "block text-xs text-gray-400 uppercase tracking-wider mb-1" %>
       <%= text_area_tag "pit_scouting_entry[data][drivetrain_notes]",
             pit_scouting_entry.data&.dig("drivetrain_notes"),
             rows: 2,
-            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
+            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
             placeholder: "Drivetrain notes..." %>
     </div>
   </div>
 
   <%# ===== INTAKE ===== %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-    <h3 class="text-xs text-gray-500 uppercase tracking-wider mb-3">Intake</h3>
+    <h3 class="text-xs text-gray-400 uppercase tracking-wider mb-3">Intake</h3>
 
     <%# Intake type checkboxes %>
     <div class="flex flex-wrap gap-2">
@@ -148,18 +148,18 @@
 
     <%# Intake notes %>
     <div>
-      <%= label_tag "pit_scouting_entry[data][intake_notes]", "Notes", class: "block text-xs text-gray-500 uppercase tracking-wider mb-1" %>
+      <%= label_tag "pit_scouting_entry[data][intake_notes]", "Notes", class: "block text-xs text-gray-400 uppercase tracking-wider mb-1" %>
       <%= text_area_tag "pit_scouting_entry[data][intake_notes]",
             pit_scouting_entry.data&.dig("intake_notes"),
             rows: 2,
-            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
+            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
             placeholder: "Intake notes..." %>
     </div>
   </div>
 
   <%# ===== HOPPER ===== %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-    <h3 class="text-xs text-gray-500 uppercase tracking-wider mb-3">Hopper</h3>
+    <h3 class="text-xs text-gray-400 uppercase tracking-wider mb-3">Hopper</h3>
 
     <%# XYZ Dimensions %>
     <p class="text-sm font-medium text-gray-300">Dimensions (inches)</p>
@@ -193,18 +193,18 @@
 
     <%# Hopper notes %>
     <div>
-      <%= label_tag "pit_scouting_entry[data][hopper_notes]", "Notes", class: "block text-xs text-gray-500 uppercase tracking-wider mb-1" %>
+      <%= label_tag "pit_scouting_entry[data][hopper_notes]", "Notes", class: "block text-xs text-gray-400 uppercase tracking-wider mb-1" %>
       <%= text_area_tag "pit_scouting_entry[data][hopper_notes]",
             pit_scouting_entry.data&.dig("hopper_notes"),
             rows: 2,
-            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
+            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
             placeholder: "Hopper notes..." %>
     </div>
   </div>
 
   <%# ===== INDEXER ===== %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-    <h3 class="text-xs text-gray-500 uppercase tracking-wider mb-3">Indexer</h3>
+    <h3 class="text-xs text-gray-400 uppercase tracking-wider mb-3">Indexer</h3>
 
     <%= select_tag "pit_scouting_entry[data][indexer]",
           options_for_select(
@@ -226,18 +226,18 @@
 
     <%# Indexer notes %>
     <div>
-      <%= label_tag "pit_scouting_entry[data][indexer_notes]", "Notes", class: "block text-xs text-gray-500 uppercase tracking-wider mb-1" %>
+      <%= label_tag "pit_scouting_entry[data][indexer_notes]", "Notes", class: "block text-xs text-gray-400 uppercase tracking-wider mb-1" %>
       <%= text_area_tag "pit_scouting_entry[data][indexer_notes]",
             pit_scouting_entry.data&.dig("indexer_notes"),
             rows: 2,
-            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
+            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
             placeholder: "Indexer notes..." %>
     </div>
   </div>
 
   <%# ===== SHOOTER ===== %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-    <h3 class="text-xs text-gray-500 uppercase tracking-wider mb-3">Shooter</h3>
+    <h3 class="text-xs text-gray-400 uppercase tracking-wider mb-3">Shooter</h3>
 
     <%# Shooter type (multi-select) %>
     <p class="text-sm font-medium text-gray-300 mb-1">Shooter Type</p>
@@ -281,18 +281,18 @@
 
     <%# Shooter notes %>
     <div>
-      <%= label_tag "pit_scouting_entry[data][shooter_notes]", "Notes", class: "block text-xs text-gray-500 uppercase tracking-wider mb-1" %>
+      <%= label_tag "pit_scouting_entry[data][shooter_notes]", "Notes", class: "block text-xs text-gray-400 uppercase tracking-wider mb-1" %>
       <%= text_area_tag "pit_scouting_entry[data][shooter_notes]",
             pit_scouting_entry.data&.dig("shooter_notes"),
             rows: 2,
-            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
+            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
             placeholder: "Shooter notes..." %>
     </div>
   </div>
 
   <%# ===== CLIMBER ===== %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-    <h3 class="text-xs text-gray-500 uppercase tracking-wider mb-3">Climber</h3>
+    <h3 class="text-xs text-gray-400 uppercase tracking-wider mb-3">Climber</h3>
 
     <%# Climber level (multi-select) %>
     <p class="text-sm font-medium text-gray-300 mb-1">Level</p>
@@ -324,18 +324,18 @@
 
     <%# Climber notes %>
     <div>
-      <%= label_tag "pit_scouting_entry[data][climber_notes]", "Notes", class: "block text-xs text-gray-500 uppercase tracking-wider mb-1" %>
+      <%= label_tag "pit_scouting_entry[data][climber_notes]", "Notes", class: "block text-xs text-gray-400 uppercase tracking-wider mb-1" %>
       <%= text_area_tag "pit_scouting_entry[data][climber_notes]",
             pit_scouting_entry.data&.dig("climber_notes"),
             rows: 2,
-            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
+            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
             placeholder: "Climber notes..." %>
     </div>
   </div>
 
   <%# ===== AUTO ===== %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-    <h3 class="text-xs text-gray-500 uppercase tracking-wider mb-3">Auto</h3>
+    <h3 class="text-xs text-gray-400 uppercase tracking-wider mb-3">Auto</h3>
 
     <% auton_paths = pit_scouting_entry.data&.dig("auton_paths") || [] %>
     <div data-controller="auton-paths"
@@ -359,11 +359,11 @@
 
     <%# Auton notes %>
     <div>
-      <%= label_tag "pit_scouting_entry[data][auton_notes]", "Notes", class: "block text-xs text-gray-500 uppercase tracking-wider mb-1" %>
+      <%= label_tag "pit_scouting_entry[data][auton_notes]", "Notes", class: "block text-xs text-gray-400 uppercase tracking-wider mb-1" %>
       <%= text_area_tag "pit_scouting_entry[data][auton_notes]",
             pit_scouting_entry.data&.dig("auton_notes"),
             rows: 2,
-            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
+            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
             placeholder: "Auto notes..." %>
     </div>
   </div>
@@ -371,34 +371,34 @@
   <%# ===== STRENGTHS / WEAKNESSES ===== %>
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-      <%= label_tag "pit_scouting_entry[data][strengths]", "Strengths", class: "block text-xs text-gray-500 uppercase tracking-wider mb-2" %>
+      <%= label_tag "pit_scouting_entry[data][strengths]", "Strengths", class: "block text-xs text-gray-400 uppercase tracking-wider mb-2" %>
       <%= text_area_tag "pit_scouting_entry[data][strengths]",
             pit_scouting_entry.data&.dig("strengths"),
             rows: 3,
-            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
+            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
             placeholder: "What does this robot do well?" %>
     </div>
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-      <%= label_tag "pit_scouting_entry[data][weaknesses]", "Weaknesses", class: "block text-xs text-gray-500 uppercase tracking-wider mb-2" %>
+      <%= label_tag "pit_scouting_entry[data][weaknesses]", "Weaknesses", class: "block text-xs text-gray-400 uppercase tracking-wider mb-2" %>
       <%= text_area_tag "pit_scouting_entry[data][weaknesses]",
             pit_scouting_entry.data&.dig("weaknesses"),
             rows: 3,
-            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
+            class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none",
             placeholder: "Any limitations or issues?" %>
     </div>
   </div>
 
   <%# ===== NOTES ===== %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-    <%= f.label :notes, class: "block text-xs text-gray-500 uppercase tracking-wider mb-2" %>
-    <%= f.text_area :notes, rows: 3, class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none", placeholder: "Additional observations..." %>
+    <%= f.label :notes, class: "block text-xs text-gray-400 uppercase tracking-wider mb-2" %>
+    <%= f.text_area :notes, rows: 3, class: "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition resize-none", placeholder: "Additional observations..." %>
   </div>
 
   <%# ===== PHOTOS ===== %>
   <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
     <div class="flex items-start justify-between gap-3 mb-3">
       <div>
-        <h3 class="text-xs text-gray-500 uppercase tracking-wider">Photos</h3>
+        <h3 class="text-xs text-gray-400 uppercase tracking-wider">Photos</h3>
         <p class="text-sm text-gray-400 mt-1">Add photos from your library or take new ones from the pit.</p>
       </div>
       <span class="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-1">Online only</span>
@@ -482,12 +482,12 @@
     </div>
 
     <canvas data-pit-photo-target="canvas" class="hidden"></canvas>
-    <p class="mt-3 text-xs text-gray-500">Take Photos now opens an in-page camera on laptops and desktops, and captured images are attached to the form. If you save offline, add photos after the entry syncs.</p>
+    <p class="mt-3 text-xs text-gray-400">Take Photos now opens an in-page camera on laptops and desktops, and captured images are attached to the form. If you save offline, add photos after the entry syncs.</p>
   </div>
 
   <%# ===== SUBMIT ===== %>
   <div class="pb-4">
     <%= f.submit pit_scouting_entry.persisted? ? "Update Entry" : "Submit Pit Scout",
-                 class: "w-full py-4 text-lg font-bold bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white rounded-xl transition-all active:scale-[0.98] cursor-pointer shadow-lg shadow-orange-500/20" %>
+                 class: "btn-submit" %>
   </div>
 <% end %>

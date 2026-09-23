@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { openDB, SCOUTING_STORE, PIT_STORE } from "lib/lighthouse_db"
+import { showToast } from "lib/toast"
 
 // Session-based sync endpoints (cookies sent automatically, no Bearer token needed)
 const SCOUTING_SYNC_URL = "/scouting_entries/sync"
@@ -249,49 +250,42 @@ export default class extends Controller {
   }
 
   #showSessionExpiredBanner() {
+    // Single toast owner: render into the connectivity-owned #toast-stack via
+    // the shared helper instead of a second fixed banner. Falls back to a
+    // minimal link banner only if no toast stack exists (e.g. tests).
+    const signInUrl = document.querySelector("meta[name='sign-in-url']")?.content || "/users/sign_in"
+    if (document.getElementById("toast-stack")) {
+      showToast("Session expired — please sign in to sync your offline entries.", { type: "error", duration: 10000 })
+      return
+    }
+
     const banner = document.createElement("div")
-    banner.className = "fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-600 text-white px-6 py-3 rounded-lg shadow-lg font-medium flex items-center gap-3"
+    banner.className = "toast-card toast-warning"
+    banner.setAttribute("role", "alert")
 
     const span = document.createElement("span")
-    span.textContent = "Session expired \u2014 please sign in to sync your offline entries."
+    span.textContent = "Session expired — please sign in to sync your offline entries."
 
-    const signInUrl = document.querySelector("meta[name='sign-in-url']")?.content || "/users/sign_in"
     const link = document.createElement("a")
     link.href = signInUrl
     link.className = "underline font-semibold whitespace-nowrap"
     link.textContent = "Sign in"
 
-    banner.appendChild(span)
-    banner.appendChild(link)
+    banner.append(span, link)
     document.body.appendChild(banner)
 
-    setTimeout(() => {
-      banner.style.transition = "opacity 0.5s"
-      banner.style.opacity = "0"
-      setTimeout(() => banner.remove(), 500)
-    }, 10000)
+    setTimeout(() => banner.remove(), 10000)
   }
 
   #showSyncBanner(synced, failed) {
-    const banner = document.createElement("div")
-
+    // Consolidated with connectivity: one toast in #toast-stack, never a
+    // second fixed banner competing with the sync-progress banner.
     if (failed > 0 && synced > 0) {
-      banner.className = "fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-600 text-white px-6 py-3 rounded-lg shadow-lg font-medium"
-      banner.textContent = `Synced ${synced} ${synced === 1 ? "entry" : "entries"}. ${failed} failed — tap Retry to try again.`
+      showToast(`Synced ${synced} ${synced === 1 ? "entry" : "entries"}. ${failed} failed — tap Retry to try again.`, { type: "info" })
     } else if (failed > 0) {
-      banner.className = "fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg font-medium"
-      banner.textContent = `Sync failed for ${failed} ${failed === 1 ? "entry" : "entries"}. Tap Retry to try again.`
+      showToast(`Sync failed for ${failed} ${failed === 1 ? "entry" : "entries"}. Tap Retry to try again.`, { type: "error" })
     } else {
-      banner.className = "fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg font-medium"
-      banner.textContent = `Synced ${synced} offline ${synced === 1 ? "entry" : "entries"} successfully.`
+      showToast(`Synced ${synced} offline ${synced === 1 ? "entry" : "entries"} successfully.`, { type: "success" })
     }
-
-    document.body.appendChild(banner)
-
-    setTimeout(() => {
-      banner.style.transition = "opacity 0.5s"
-      banner.style.opacity = "0"
-      setTimeout(() => banner.remove(), 500)
-    }, 5000)
   }
 }
