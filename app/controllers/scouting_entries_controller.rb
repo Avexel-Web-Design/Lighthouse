@@ -152,7 +152,7 @@ class ScoutingEntriesController < ApplicationController
   private
 
   def set_scouting_entry
-    @scouting_entry = ScoutingEntry.find(params[:id])
+    @scouting_entry = policy_scope(ScoutingEntry).where(event: current_event).find(params[:id])
   end
 
   def scouting_entry_params

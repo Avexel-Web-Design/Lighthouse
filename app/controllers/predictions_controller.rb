@@ -22,7 +22,7 @@ class PredictionsController < ApplicationController
   def show
     authorize :prediction, :show?
 
-    @match = Match.includes(match_alliances: :frc_team).find(params[:id])
+    @match = current_event.matches.includes(match_alliances: :frc_team).find(params[:id])
     @prediction = Prediction.find_by(match: @match, event: current_event, source: "blended")
 
     red_alliances = @match.match_alliances.select { |ma| ma.alliance_color == "red" }

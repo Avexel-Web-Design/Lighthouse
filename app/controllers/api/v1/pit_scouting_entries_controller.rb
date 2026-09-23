@@ -2,7 +2,10 @@ module Api
   module V1
     class PitScoutingEntriesController < ActionController::API
       include ApiAuthenticatable
+      include Pundit::Authorization
       include JsonRequestData
+
+      rescue_from Pundit::NotAuthorizedError, with: :render_forbidden
 
       MAX_BULK_SYNC = 100
 
@@ -10,10 +13,21 @@ module Api
         entry = PitScoutingEntry.from_offline_data(
           entry_params.merge(user_id: current_api_user.id)
         )
+        authorize entry
+
+        unless valid_event_scope?(entry)
+          render json: { status: "error", errors: [ "Invalid event scope" ] }, status: :unprocessable_entity
+          return
+        end
 
         if entry.client_uuid.present?
           existing = PitScoutingEntry.find_by(client_uuid: entry.client_uuid)
           if existing
+            authorize existing, :show?
+            if entry.event_id.present? && existing.event_id != entry.event_id.to_i
+              render json: { error: "Forbidden" }, status: :forbidden
+              return
+            end
             render json: { status: "existing", id: existing.id, client_uuid: existing.client_uuid }, status: :ok
             return
           end
@@ -48,12 +62,28 @@ module Api
           permitted[:data] = json_request_data(entry_data[:data])
           permitted[:notes] = permitted[:notes].to_s.strip.first(2000) if permitted[:notes].present?
 
+          entry = PitScoutingEntry.from_offline_data(permitted)
+          begin
+            authorize entry, :sync?
+          rescue Pundit::NotAuthorizedError
+            results << { client_uuid: permitted[:client_uuid], status: "error", errors: [ "Forbidden" ] }
+            next
+          end
+
+          unless valid_event_scope?(entry)
+            results << { client_uuid: permitted[:client_uuid], status: "error", errors: [ "Invalid event scope" ] }
+            next
+          end
+
           existing = permitted[:client_uuid].present? ? PitScoutingEntry.find_by(client_uuid: permitted[:client_uuid]) : nil
 
           if existing
-            results << { client_uuid: permitted[:client_uuid], status: "existing", id: existing.id }
+            if entry.event_id.present? && existing.event_id != entry.event_id.to_i
+              results << { client_uuid: permitted[:client_uuid], status: "error", errors: [ "Forbidden" ] }
+            else
+              results << { client_uuid: permitted[:client_uuid], status: "existing", id: existing.id }
+            end
           else
-            entry = PitScoutingEntry.from_offline_data(permitted)
             if entry.save
               results << { client_uuid: permitted[:client_uuid], status: "created", id: entry.id }
             else
@@ -69,6 +99,25 @@ module Api
       end
 
       private
+
+      def pundit_user
+        current_api_user
+      end
+
+      def render_forbidden
+        render json: { error: "Forbidden" }, status: :forbidden
+      end
+
+      def valid_event_scope?(entry)
+        return false if entry.event_id.blank?
+
+        event = Event.find_by(id: entry.event_id)
+        return false unless event
+
+        return false if entry.frc_team_id.present? && !FrcTeam.at_event(event).where(id: entry.frc_team_id).exists?
+
+        true
+      end
 
       def entry_params
         permitted = params.expect(pit_scouting_entry: [

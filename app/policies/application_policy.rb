@@ -37,15 +37,15 @@ class ApplicationPolicy
   private
 
   def admin?
-    user.admin?
+    user.present? && user.admin?
   end
 
   def analyst?
-    user.admin? || user.analyst?
+    user.present? && (user.admin? || user.analyst?)
   end
 
   def scout?
-    user.admin? || user.analyst? || user.scout?
+    user.present? && (user.admin? || user.analyst? || user.scout?)
   end
 
   class Scope
@@ -63,15 +63,15 @@ class ApplicationPolicy
     private
 
     def admin?
-      user.admin?
+      user.present? && user.admin?
     end
 
     def analyst?
-      user.admin? || user.analyst?
+      user.present? && (user.admin? || user.analyst?)
     end
 
     def scout?
-      user.admin? || user.analyst? || user.scout?
+      user.present? && (user.admin? || user.analyst? || user.scout?)
     end
   end
 end

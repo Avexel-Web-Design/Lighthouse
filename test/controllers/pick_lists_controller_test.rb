@@ -67,7 +67,7 @@ class PickListsControllerTest < ActionDispatch::IntegrationTest
     select_event(@event)
 
     get pick_list_path(@pick_list)
-    # Pundit denies via authorize — redirects
+    # Scoped find misses scout's scope → RecordNotFound → redirect (ApplicationController#record_not_found)
     assert_response :redirect
   end
 

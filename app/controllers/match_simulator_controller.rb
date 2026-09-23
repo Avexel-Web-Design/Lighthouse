@@ -10,7 +10,7 @@ class MatchSimulatorController < ApplicationController
     authorize :match_simulator, :new?
 
     @teams = FrcTeam.at_event(current_event).order(:team_number)
-    @saved_simulations = SimulationResult.where(event: current_event).order(created_at: :desc).limit(10)
+    @saved_simulations = policy_scope(SimulationResult).where(event: current_event).order(created_at: :desc).limit(10)
   end
 
   def create
@@ -40,7 +40,7 @@ class MatchSimulatorController < ApplicationController
 
     # Save simulation if requested
     if simulator_params[:save_simulation] == "1"
-      SimulationResult.create(
+      simulation_record = SimulationResult.new(
         user: current_user,
         event: current_event,
         name: simulation_name_from(simulator_params[:simulation_name]),
@@ -49,6 +49,8 @@ class MatchSimulatorController < ApplicationController
         results: @simulation,
         iterations: iterations
       )
+      authorize simulation_record
+      simulation_record.save!
     end
 
     @teams = FrcTeam.at_event(current_event).order(:team_number)

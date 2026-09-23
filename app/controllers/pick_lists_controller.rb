@@ -82,7 +82,7 @@ class PickListsController < ApplicationController
   private
 
   def set_pick_list
-    @pick_list = PickList.find(params[:id])
+    @pick_list = policy_scope(PickList).where(event: current_event).find(params[:id])
   end
 
   def pick_list_params

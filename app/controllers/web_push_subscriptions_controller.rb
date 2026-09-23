@@ -14,7 +14,7 @@ class WebPushSubscriptionsController < ApplicationController
       return
     end
 
-    record = WebPushSubscription.find_or_initialize_by(endpoint: endpoint)
+    record = current_user.web_push_subscriptions.find_or_initialize_by(endpoint: endpoint)
     record.assign_attributes(
       user: current_user,
       p256dh: keys[:p256dh].to_s.strip.first(MAX_KEY_LENGTH),

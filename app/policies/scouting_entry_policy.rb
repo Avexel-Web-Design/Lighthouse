@@ -27,6 +27,10 @@ class ScoutingEntryPolicy < ApplicationPolicy
     scout?
   end
 
+  def bulk_sync?
+    scout?
+  end
+
   def approve?
     admin?
   end
@@ -34,7 +38,7 @@ class ScoutingEntryPolicy < ApplicationPolicy
   private
 
   def owner?
-    record.user_id == user.id
+    user.present? && record.user_id == user.id
   end
 
   class Scope < ApplicationPolicy::Scope

@@ -25,9 +25,9 @@ class WebPushSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "reassigns endpoint to the current user on shared device" do
+  test "does not hijack another user's endpoint" do
     shared_endpoint = "https://push.example.com/subscriptions/shared-1"
-    WebPushSubscription.create!(
+    admin_record = WebPushSubscription.create!(
       user: users(:admin_user),
       endpoint: shared_endpoint,
       p256dh: "old-key",
@@ -48,11 +48,11 @@ class WebPushSubscriptionsControllerTest < ActionDispatch::IntegrationTest
            as: :json
     end
 
-    assert_response :success
-    record = WebPushSubscription.find_by(endpoint: shared_endpoint)
-    assert_equal @user.id, record.user_id
-    assert_equal "new-key", record.p256dh
-    assert_equal "new-auth", record.auth
+    assert_response :unprocessable_entity
+    admin_record.reload
+    assert_equal users(:admin_user).id, admin_record.user_id
+    assert_equal "old-key", admin_record.p256dh
+    assert_equal "old-auth", admin_record.auth
   end
 
   test "unsubscribe removes subscription by endpoint" do
