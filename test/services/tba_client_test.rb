@@ -18,7 +18,7 @@ class TbaClientTest < ActiveSupport::TestCase
       @requested_urls = []
     end
 
-    def get(url)
+    def get(url, params = nil)
       @requested_urls << url
       raise @error if @error
 
@@ -76,7 +76,7 @@ class TbaClientTest < ActiveSupport::TestCase
 
     @client.event_matches("2026cmp")
 
-    assert conn.requested_urls.any? { |url| url.include?("/event/2026cmp/matches") }
+    assert conn.requested_urls.any? { |url| url.include?("event/2026cmp/matches") }
   end
 
   test "team and event_rankings request their endpoints" do
@@ -85,8 +85,8 @@ class TbaClientTest < ActiveSupport::TestCase
     @client.team("frc254")
     @client.event_rankings("2026cmp")
 
-    assert conn.requested_urls.any? { |url| url.include?("/team/frc254") }
-    assert conn.requested_urls.any? { |url| url.include?("/event/2026cmp/rankings") }
+    assert conn.requested_urls.any? { |url| url.include?("team/frc254") }
+    assert conn.requested_urls.any? { |url| url.include?("event/2026cmp/rankings") }
   end
 
   test "returns nil on non-success responses" do

@@ -20,6 +20,18 @@ module Lighthouse
     # (materialized views, custom indexes, etc.) are preserved across db:setup/reset.
     config.active_record.schema_format = :sql
 
+    # Active Storage defaults to the :vips variant processor, but the engine
+    # requires image_processing/vips at boot. image_processing 2.x re-raises a
+    # missing native libvips as a generic LoadError (no "libvips" in the message),
+    # which bypasses Rails' graceful fallback and crashes boot. This app only
+    # attaches photos (no variants), so fall back to :disabled when libvips is
+    # absent. CI/Dockerfile install libvips and keep using :vips.
+    begin
+      require "vips"
+    rescue LoadError
+      config.active_storage.variant_processor = :disabled
+    end
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
