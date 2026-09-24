@@ -132,11 +132,11 @@ class ScoutingAssignmentNotificationJobTest < ActiveJob::TestCase
     singleton.send(:remove_method, :__original_payload_send_for_test)
   end
 
-  def with_stubbed_webpush_error(captured)
+  def with_stubbed_webpush_error(captured = nil)
     singleton = class << Webpush; self; end
     singleton.send(:alias_method, :__original_payload_send_for_test, :payload_send)
     singleton.send(:define_method, :payload_send) do |**kwargs|
-      captured << kwargs
+      captured << kwargs if captured
       raise StandardError, "simulated failure"
     end
 
