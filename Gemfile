@@ -40,7 +40,7 @@ gem "image_processing", "~> 2.2"
 # require: false keeps boot libvips-free; it loads lazily on variant processing.
 gem "ruby-vips", "~> 2.0", require: false
 
-# Pin JSON to 2.x for Rails 8.1 compatibility (JSON 3.x breaks ActiveSupport JSON decoding)
+# JSON 3.x requires Rails >= 8.1.4 (ActiveSupport::JSON.decode keyword-args fix).
 gem "json", "~> 3.1"
 
 # Environment variables
