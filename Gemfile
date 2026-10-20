@@ -41,7 +41,7 @@ gem "image_processing", "~> 2.2"
 gem "ruby-vips", "~> 2.0", require: false
 
 # Pin JSON to 2.x for Rails 8.1 compatibility (JSON 3.x breaks ActiveSupport JSON decoding)
-gem "json", "~> 2.19"
+gem "json", "~> 3.1"
 
 # Environment variables
 gem "dotenv-rails", groups: [ :development, :test ]
